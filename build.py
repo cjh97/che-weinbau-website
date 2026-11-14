@@ -90,9 +90,9 @@ def analytics():
     """Plausible: cookieless, no personal data stored -> no consent banner needed."""
     if not C.PLAUSIBLE_DOMAIN or PREVIEW:
         return ""
-    return (f'<script defer data-domain="{C.PLAUSIBLE_DOMAIN}" '
-            f'src="https://plausible.io/js/script.outbound-links.js"></script>\n'
-            '<script>window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)}</script>')
+    return (f'<script async src="{C.PLAUSIBLE_SCRIPT}"></script>\n'
+            '<script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},'
+            'plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()</script>')
 
 
 # ------------------------------------------------------------------ layout

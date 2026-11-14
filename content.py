@@ -32,6 +32,7 @@ SITE_URL = "https://che-weinbau.com"
 # Visitor analytics: Plausible (cookieless, EU-hosted, no consent banner needed).
 # Set to None to switch analytics off.
 PLAUSIBLE_DOMAIN = "che-weinbau.com"
+PLAUSIBLE_SCRIPT = "https://plausible.io/js/pa-fHH1l0u0f-Hv9c2HzHAAH.js"  # site-specific script from Plausible
 
 # ---------------------------------------------------------------- navigation
 # key -> path per language (paths end with "/"; "" is the German home page)
