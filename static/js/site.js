@@ -1,6 +1,10 @@
 // CH engineering – small progressive enhancements. Sets no cookies, stores nothing.
 (function () {
-  document.documentElement.classList.add("js");
+  // Header: transparent over the hero photo, solid once the page scrolls
+  var header = document.querySelector("[data-header]");
+  function onScroll() { if (header) header.classList.toggle("scrolled", window.scrollY > 40); }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
 
   // Mobile navigation
   var toggle = document.querySelector("[data-nav-toggle]");
@@ -24,17 +28,6 @@
   document.querySelectorAll("[data-event-end]").forEach(function (el) {
     if (el.getAttribute("data-event-end") < today) el.remove();
   });
-
-  // Reveal on scroll
-  var targets = document.querySelectorAll(".feature, .product-card, .news-card, .module, .split-body, .spec-group, .contact-card, .intro > *, .story-inner > *");
-  if ("IntersectionObserver" in window) {
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
-      });
-    }, { rootMargin: "0px 0px -8% 0px" });
-    targets.forEach(function (el) { el.classList.add("reveal"); io.observe(el); });
-  }
 
   // Lightbox for galleries
   var lb = document.querySelector("[data-lightbox]");

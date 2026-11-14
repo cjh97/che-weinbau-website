@@ -112,6 +112,7 @@ EVENTS = [
     {
         "start": "2026-11-17", "end": "2026-11-20",
         "title": {"de": "SIMEI 2026 · Mailand", "en": "SIMEI 2026 · Milan"},
+        "short": {"de": "17.–20. November · Besuchen Sie uns", "en": "17–20 November · Visit us"},
         "text": {"de": "Besuchen Sie uns vom 17. bis 20. November auf der SIMEI in Mailand und erleben Sie den Steillagen-Vollernter MSH.",
                  "en": "Visit us at SIMEI in Milan, 17–20 November, and see the Steep Slope Harvester MSH up close."},
         "url": "https://www.simei.it/en",
@@ -211,7 +212,7 @@ HOME = {
                   "en": "Custom-planned modular grape reception systems – with a grape mill up to approx. 18 t/h."}},
     ],
     "story_kicker": {"de": "Unsere Geschichte", "en": "Our story"},
-    "story_title": {"de": "Aus der Mosel, für die steilsten Weinberge der Welt.",
+    "story_title": {"de": "Von der Mosel, für die steilsten Weinberge der Welt.",
                     "en": "From the Mosel, for the world's steepest vineyards."},
     "story": {
         "de": "Seit 2014 produziert CH engineering Maschinen für den landwirtschaftlichen Einsatz. Wirtschaftlichkeit, Zuverlässigkeit und Schlagkraft zeichnen unsere Entwicklungen aus. So ist unser Steillagen-Vollernter kleiner, leichter und kompakter als jeder herkömmliche Ernter. Zugleich steht Qualität im Vordergrund – denn Steillagen-Weinbau bedeutet immer auch Qualitätsweinbau.",
@@ -390,6 +391,10 @@ KELLER = {
                   "en": "For whole-bunch pressing, the mill is swapped for an empty box via four quick-release fasteners – no tools needed."}},
     ],
     "gallery": ["keller-1.jpg", "keller-2.jpg", "keller-3.jpg"],
+    "system_title": {"de": "Die Traubenannahme im Baukastensystem", "en": "A modular grape reception system"},
+    "custom_title": {"de": "Geplant für Ihren Betrieb", "en": "Planned for your winery"},
+    "cta_title": {"de": "Traubenannahme planen?", "en": "Planning a grape reception?"},
+    "cta_text": {"de": "Wir beraten Sie gerne – persönlich, telefonisch oder direkt bei Ihnen im Betrieb.", "en": "We're happy to advise you – in person, by phone or at your winery."},
     "cta": {"de": "Auf Wunsch planen und bauen wir Ihre Traubenannahme nach Ihren Vorstellungen.",
             "en": "On request, we plan and build your grape reception exactly to your requirements."},
 }

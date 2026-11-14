@@ -1,0 +1,2 @@
+poppins-*.woff  Poppins by Indian Type Foundry – SIL Open Font License 1.1 (https://github.com/itfoundry/Poppins)
+Subsetted to Latin characters for this website.
