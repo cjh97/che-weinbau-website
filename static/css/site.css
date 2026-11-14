@@ -79,6 +79,7 @@ p { margin: 0 0 1.1em; }
 .hero-home .hero-img { object-position: 50% 100%; }
 .hero::before { content: ""; position: absolute; inset: 0; z-index: 1;
   background: linear-gradient(180deg, rgba(10,12,14,.62) 0%, rgba(10,12,14,.28) 42%, rgba(10,12,14,0) 68%); }
+.hero:not(.hero-home)::before { background: linear-gradient(180deg, rgba(10,12,14,.72) 0%, rgba(10,12,14,.45) 45%, rgba(10,12,14,.1) 80%); }
 .hero > .wrap { position: relative; z-index: 2; }
 .hero-content { padding-top: calc(76px + clamp(32px, 7vh, 88px)); }
 .hero h1 { color: #fff; max-width: 16em; margin: 0; font-size: clamp(2.4rem, 5.2vw, 4.6rem); }
@@ -274,4 +275,22 @@ a.card:hover .card-media img { transform: scale(1.04); }
   .specs th { width: 50%; }
   .hero-home { height: 92vh; }
   .hero { height: 64vh; }
+}
+
+/* hero subtitle */
+.hero-sub { color: rgba(255,255,255,.9); font-size: clamp(1.02rem, 1.4vw, 1.2rem); font-weight: 300; line-height: 1.55; max-width: 34em; margin: .9em 0 0; }
+
+/* key figures along the bottom of the hero photo */
+.hero-figures { height: 100vh; min-height: 680px; max-height: 1100px; }
+.hero-figures::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(0deg, rgba(10,12,14,.75) 0%, rgba(10,12,14,.3) 22%, rgba(10,12,14,0) 40%); }
+.figures-bar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding-bottom: clamp(32px, 5vh, 56px); color: #fff; }
+.figures-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; border-top: 1px solid rgba(255,255,255,.3); padding-top: 24px; }
+.figure strong { display: block; font-size: clamp(2rem, 3.4vw, 3.1rem); font-weight: 300; line-height: 1.05; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: #fff; }
+.figure span { display: block; margin-top: 6px; font-size: .86rem; color: rgba(255,255,255,.8); }
+@media (max-width: 900px) {
+  .hero-figures { height: auto; min-height: 0; max-height: none; flex-direction: column; align-items: stretch; }
+  .hero-figures .hero-content { min-height: 62vh; }
+  .hero-figures::after { display: none; }
+  .figures-bar { position: relative; background: var(--black); padding: 28px 0 36px; }
+  .figures-grid { grid-template-columns: 1fr 1fr; row-gap: 24px; border-top: 0; padding-top: 0; }
 }

@@ -211,20 +211,36 @@ def paras(items):
 # Every page is built from the same few blocks so the site looks consistent:
 #   hero → statement → split sections (photo + text) → cards / data → gallery → CTA
 
-def hero(ctx, image, title, *, home=False, top="", actions=""):
+def hero(ctx, image, title, *, home=False, top="", actions="", sub=None, stats=None):
     alt = title
-    return f"""<section class="hero{' hero-home' if home else ''}">
+    bar = ""
+    if stats:
+        items = "".join(f'<div class="figure"><strong>{e(s["value"])}</strong><span>{e(t(s["label"], ctx.lang))}</span></div>' for s in stats)
+        bar = f'<div class="figures-bar"><div class="wrap figures-grid">{items}</div></div>'
+    return f"""<section class="hero{' hero-home' if home else ''}{' hero-figures' if stats else ''}">
   {img(ctx, image, alt, 'hero-img', eager=True)}
   <div class="wrap hero-content">
     {top}
     <h1>{e(title)}</h1>
+    {f'<p class="hero-sub">{e(sub)}</p>' if sub else ''}
     {f'<div class="hero-actions">{actions}</div>' if actions else ''}
   </div>
+  {bar}
 </section>"""
 
 
 def page_hero(ctx, d, title=None):
-    return hero(ctx, d["hero_img"], title or t(d["title"], ctx.lang))
+    sub = d.get("subtitle") or d.get("lead")
+    return hero(ctx, d["hero_img"], title or t(d["title"], ctx.lang), sub=t(sub, ctx.lang) if sub else None, stats=d.get("stats"))
+
+
+def figures(ctx, image, stats):
+    """Full-width photo with the key figures across the bottom (spec-sheet style)."""
+    items = "".join(f'<div class="figure"><strong>{e(s["value"])}</strong><span>{e(t(s["label"], ctx.lang))}</span></div>' for s in stats)
+    return f"""<section class="figures">
+  {img(ctx, image, '', 'figures-img')}
+  <div class="figures-bar"><div class="wrap figures-grid">{items}</div></div>
+</section>"""
 
 
 def statement(text, extra=""):
@@ -328,9 +344,6 @@ def home(ctx):
         if dt.date.fromisoformat(ev["end"]) >= TODAY:
             events += f"""<a class="event" data-event-end="{ev['end']}" href="{ev['url']}" rel="noopener">
   <strong>{e(t(ev['title'], lang))}</strong><span class="event-text">{e(t(ev.get('short', ev['text']), lang))}</span></a>"""
-    stats = "".join(
-        f'<div class="stat"><strong>{e(s["value"])}</strong><span>{e(t(s["label"], lang))}</span></div>'
-        for s in h["stats"])
     feat_imgs = ["grapes-1.jpg", "msh-g02.jpg", "msh-g06.jpg", "msh-row.jpg"]
     feats = cards(ctx, [(feat_imgs[i], t(f["title"], lang), t(f["text"], lang), None) for i, f in enumerate(h["features"])])
     models = "".join(
@@ -344,8 +357,7 @@ def home(ctx):
                f'<a class="btn btn-outline-light" href="{ctx.page("contact")}">{e(t(C.UI["contact_cta"], lang))}</a>')
     caption = ("Leseergebnis des Steillagen-Vollernters, direkt aus dem Sammelbehälter." if lang == "de"
                else "Harvest result of the Steep Slope Harvester, straight from the collecting bin.")
-    body = f"""{hero(ctx, 'hero-mosel.jpg', t(h['hero_title'], lang), home=True, top=events, actions=actions)}
-{statement(t(h['hero_text'], lang), f'<div class="stats">{stats}</div>')}
+    body = f"""{hero(ctx, 'hero-mosel.jpg', t(h['hero_title'], lang), home=True, top=events, actions=actions, stats=h['stats'])}
 {split(ctx, 'msh-mechanical.jpg', t(h['intro_title'], lang), paras(t(h['intro'], lang)))}
 {split(ctx, 'msh-g01.jpg', t(s1['title'], lang), paras(t(s1['text'], lang)), rev=True)}
 {section(t(h['intro_kicker'], lang), feats, grey=True)}
@@ -365,7 +377,6 @@ def msh(ctx):
     specs = f"""<div class="specs-wrap"><table class="specs"><tbody>{spec_rows(ctx, m['specs'])}</tbody></table>
 <p class="fine">{e(t(m['specs_foot'], lang))}<br>{e(t(C.UI['specs_note'], lang))}</p></div>"""
     body = f"""{page_hero(ctx, m)}
-{statement(t(m['lead'], lang))}
 {secs}
 {split(ctx, None, t(m['quality_title'], lang), f"<p>{e(t(m['quality_text'], lang))}</p>", media=f'<div class="q-grid">{grid}</div>', grey=True)}
 {section(t(m['specs_title'], lang), specs)}
@@ -376,18 +387,18 @@ def msh(ctx):
 
 def ut125(ctx):
     u, lang = C.UT125, ctx.lang
-    feats = "".join(split(ctx, f['img'], t(f['title'], lang), f"<p>{e(t(f['text'], lang))}</p>", rev=bool(i % 2), label=t(f['kicker'], lang))
+    feats = "".join(split(ctx, f['img'], t(f['title'], lang), f"<p>{e(t(f['text'], lang))}</p>", rev=not bool(i % 2), label=t(f['kicker'], lang))
                     for i, f in enumerate(u["features"]))
     groups = "".join(
         f'<div class="spec-group"><h3>{e(t(g, lang))}</h3><table class="specs"><tbody>{spec_rows(ctx, rows)}</tbody></table></div>'
         for g, rows in u["spec_groups"])
     specs = f'<div class="spec-groups">{groups}</div><p class="fine">{e(t(u["specs_foot"], lang))}<br>{e(t(C.UI["specs_note"], lang))}</p>'
     body = f"""{page_hero(ctx, u)}
-{statement(t(u['lead'], lang) + ' ' + t(u['intro'], lang))}
+{split(ctx, 'ut125-side.jpg', t(u['built_title'], lang), f"<p>{e(t(u['lead'], lang))}</p><p>{e(t(u['intro'], lang))}</p>")}
 {feats}
 {section(t(u['specs_title'], lang), specs, grey=True)}
 {section(t(C.UI['gallery'], lang), gallery(ctx, u['gallery'], t(u['title'], lang)))}
-{cta_band(ctx, t(C.HOME['cta_title'], lang), t(C.HOME['cta_text'], lang))}"""
+{cta_band(ctx, t(u['cta_title'], lang), t(C.HOME['cta_text'], lang))}"""
     return layout(ctx, t(u["title"], lang), t(u["description"], lang), body, u["hero_img"])
 
 
@@ -397,7 +408,6 @@ def keller(ctx):
         f'<div class="module"><h3>{e(t(m["title"], lang))}</h3><p>{e(t(m["text"], lang))}</p></div>'
         for m in k["modules"])
     body = f"""{page_hero(ctx, k)}
-{statement(t(k['lead'], lang))}
 {split(ctx, 'keller-2.jpg', t(k['system_title'], lang), f"<p>{e(t(k['intro'], lang))}</p><div class='modules'>{mods}</div>")}
 {split(ctx, 'keller-3.jpg', t(k['custom_title'], lang), f"<p>{e(t(k['cta'], lang))}</p>", rev=True, grey=True)}
 {cta_band(ctx, t(k['cta_title'], lang), t(k['cta_text'], lang))}"""
@@ -408,7 +418,6 @@ def news_page(ctx):
     n, lang = C.NEWS_PAGE, ctx.lang
     cards_html = "".join(news_card(ctx, x) for x in C.NEWS)
     body = f"""{page_hero(ctx, n)}
-{statement(t(n['lead'], lang))}
 {section(None, f'<div class="news-grid">{cards_html}</div>')}"""
     return layout(ctx, t(n["title"], lang), t(n["description"], lang), body, n["hero_img"])
 
@@ -428,7 +437,6 @@ def contact(ctx):
 <p class="contact-line">{icon('phone')}<a href="tel:{p['phone'].replace(' ', '')}">{e(p['phone_display'])}</a></p>
 <div class="contact-actions"><a class="btn btn-outline" href="{maps}{e(p['street'] + ', ' + p['zip_city'])}" rel="noopener">{e(t(C.UI['route'], lang))}</a></div>"""
     body = f"""{page_hero(ctx, c)}
-{statement(t(c['lead'], lang))}
 {split(ctx, 'hero-mosel.jpg', t(C.UI['hq'], lang) + ' Kröv', hq)}
 {split(ctx, 'ut125-hof.jpg', t(C.UI['production'], lang) + ' Wintrich', prod, rev=True)}"""
     return layout(ctx, t(c["title"], lang), t(c["description"], lang), body, c["hero_img"])
