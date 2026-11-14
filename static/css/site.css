@@ -252,13 +252,14 @@ a.card:hover .card-media img { transform: scale(1.04); }
 @media (max-width: 900px) {
   .wrap { width: calc(100% - 48px); }
   .nav-toggle { display: block; }
-  .main-nav { position: fixed; inset: 0; background: #fff; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0; padding: 96px 24px 32px; transform: translateX(100%); transition: transform .3s var(--ease); z-index: -1; }
-  .nav-open .main-nav { transform: none; }
+  .nav-open .site-header { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: 0 1px 0 var(--line); }
+  .main-nav { position: fixed; top: 76px; left: 0; right: 0; height: calc(100vh - 76px); height: calc(100dvh - 76px); background: #fff; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0; padding: 8px 24px 40px; overflow-y: auto; visibility: hidden; opacity: 0; transform: translateY(-8px); transition: opacity .25s var(--ease), transform .25s var(--ease), visibility 0s .25s; }
+  .nav-open .main-nav { visibility: visible; opacity: 1; transform: none; transition: opacity .25s var(--ease), transform .25s var(--ease); }
   .nav-open .brand img { filter: brightness(0); }
   .main-nav ul { flex-direction: column; gap: 0; width: 100%; }
   .main-nav a, .site-header .main-nav a { color: var(--black); }
-  .main-nav li a { display: block; padding: 16px 0; border-bottom: 1px solid var(--line); font-size: 1.4rem; font-weight: 300; }
-  .main-nav .lang { margin-top: 24px; }
+  .main-nav li a { display: block; padding: 18px 0; border-bottom: 1px solid var(--line); font-size: 1.35rem; font-weight: 300; }
+  .main-nav .lang { margin-top: 28px; }
   .split { grid-template-columns: 1fr; min-height: 0; }
   .split-rev .split-media { order: 0; }
   .split-media { aspect-ratio: 4 / 3; min-height: 0; }
