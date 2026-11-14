@@ -2,8 +2,16 @@
 (function () {
   // Header: transparent over the hero photo, solid once the page scrolls
   var header = document.querySelector("[data-header]");
-  function onScroll() { if (header) header.classList.toggle("scrolled", window.scrollY > 40); }
+  var heroEl = document.querySelector(".hero");
+  function onScroll() {
+    if (!header) return;
+    // stay transparent while the hero photo is behind the header, turn white after it
+    var limit = heroEl ? heroEl.getBoundingClientRect().bottom + window.scrollY - header.offsetHeight : 40;
+    var over = heroEl ? heroEl.querySelector(".hero-content").getBoundingClientRect().bottom + window.scrollY - header.offsetHeight : limit;
+    header.classList.toggle("scrolled", window.scrollY > Math.min(limit, Math.max(over, 40)));
+  }
   window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll);
   onScroll();
 
   // Mobile navigation
