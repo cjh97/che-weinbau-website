@@ -255,7 +255,7 @@ def news_card(ctx, n, full=True):
     lang = ctx.lang
     title = t(n["title"], lang)
     text = t(n.get("body") or n["summary"], lang)
-    media = (f'<div class="news-media">{img(ctx, n["img"], "", sizes="(min-width: 900px) 33vw, 100vw")}</div>'
+    media = (f'<div class="news-media{" contain" if n.get("fit") == "contain" else ""}">{img(ctx, n["img"], "", sizes="(min-width: 900px) 33vw, 100vw")}</div>'
              if n.get("img") and ((IMG_DIR / n["img"]).exists() or not (IMG_DIR / ".fetched").exists())
              else '<div class="news-media news-media-empty">' + icon("grape", "icon big") + "</div>")
     link = ""
@@ -551,7 +551,7 @@ def privacy_html():
     s.feed(m.group(1) if m else raw)
     out = "".join(s.out)
     out = re.sub(r"<p>\s*</p>", "", out)
-    out = re.sub(r"<h[1-4]>\s*Datenschutzerklärung\s*</h[1-4]>", "", out, count=1)
+    out = re.sub(r"^\s*(<h[1-4]>)?\s*Datenschutzerklärung\s*(</h[1-4]>)?", "", out, count=1)
     return out
 
 
