@@ -289,11 +289,12 @@ a.card:hover .card-media img { transform: scale(1.04); }
 .figure strong { display: block; font-size: clamp(2rem, 3.4vw, 3.1rem); font-weight: 300; line-height: 1.05; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: #fff; }
 .figure span { display: block; margin-top: 6px; font-size: .86rem; color: rgba(255,255,255,.8); }
 @media (max-width: 900px) {
-  .hero-figures { height: auto; min-height: 0; max-height: none; flex-direction: column; align-items: stretch; }
-  .hero-figures .hero-content { min-height: 62vh; }
-  .hero-figures::after { display: none; }
-  .figures-bar { position: relative; background: var(--black); padding: 28px 0 36px; }
-  .figures-grid { grid-template-columns: 1fr 1fr; row-gap: 24px; border-top: 0; padding-top: 0; }
+  .hero-figures { height: 100vh; height: 100svh; min-height: 720px; max-height: none; }
+  .hero-figures::after { background: linear-gradient(0deg, rgba(10,12,14,.55) 0%, rgba(10,12,14,0) 45%); }
+  .figures-bar { padding: 22px 0 calc(24px + env(safe-area-inset-bottom)); background: rgba(10,12,14,.28); backdrop-filter: blur(14px) saturate(120%); -webkit-backdrop-filter: blur(14px) saturate(120%); border-top: 1px solid rgba(255,255,255,.18); }
+  .figures-grid { grid-template-columns: 1fr 1fr; row-gap: 18px; column-gap: 20px; border-top: 0; padding-top: 0; }
+  .figure strong { font-size: 1.9rem; }
+  .figure span { margin-top: 2px; font-size: .8rem; }
 }
 
 /* ---------- phone refinements ---------- */
