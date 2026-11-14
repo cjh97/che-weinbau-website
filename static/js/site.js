@@ -10,6 +10,14 @@
     var over = heroEl ? heroEl.querySelector(".hero-content").getBoundingClientRect().bottom + window.scrollY - header.offsetHeight : limit;
     header.classList.toggle("scrolled", window.scrollY > Math.min(limit, Math.max(over, 40)));
   }
+  var lastY = window.scrollY;
+  window.addEventListener("scroll", function () {
+    var y = window.scrollY;
+    if (header && !document.body.classList.contains("nav-open")) {
+      header.classList.toggle("hide", y > lastY && y > 60);
+    }
+    lastY = y;
+  }, { passive: true });
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onScroll);
   onScroll();
