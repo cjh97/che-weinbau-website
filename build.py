@@ -1,0 +1,628 @@
+#!/usr/bin/env python3
+"""Static site generator for che-weinbau.com.
+
+    python build.py            -> builds the site into _site/
+    python build.py --preview  -> same, but links point to .../index.html (for file previews)
+
+Content lives in content.py; styles in static/css/site.css; behaviour in static/js/site.js.
+Only the Python standard library is needed.
+"""
+import datetime as dt
+import html
+import json
+import pathlib
+import re
+import shutil
+import sys
+from html.parser import HTMLParser
+
+import content as C
+
+ROOT = pathlib.Path(__file__).resolve().parent
+OUT = ROOT / "_site"
+PREVIEW = "--preview" in sys.argv
+TODAY = dt.date.today()
+IMG_DIR = ROOT / "assets" / "img"
+
+e = html.escape
+
+
+def t(v, lang):
+    """Pick the language variant of a value (plain strings pass through)."""
+    return v[lang] if isinstance(v, dict) else v
+
+
+# ------------------------------------------------------------------ linking
+class Ctx:
+    def __init__(self, path, lang, key):
+        self.path, self.lang, self.key = path, lang, key
+        self.prefix = "../" * path.count("/")
+
+    def href(self, target_path):
+        p = self.prefix + target_path
+        if PREVIEW:
+            p += "index.html"
+        return p or "./"
+
+    def page(self, key, lang=None):
+        return self.href(C.PAGES[key][lang or self.lang])
+
+    def asset(self, p):
+        return self.prefix + p
+
+
+def img(ctx, name, alt="", cls="", sizes="100vw", eager=False):
+    src = ctx.asset(f"assets/img/{name}")
+    srcset = ""
+    if (IMG_DIR / "thumbs" / name).exists():
+        srcset = f' srcset="{ctx.asset("assets/img/thumbs/" + name)} 800w, {src} 2000w" sizes="{sizes}"'
+    load = 'fetchpriority="high"' if eager else 'loading="lazy" decoding="async"'
+    c = f' class="{cls}"' if cls else ""
+    return f'<img src="{src}"{srcset} alt="{e(alt)}"{c} {load}>'
+
+
+# ------------------------------------------------------------------ icons
+ICONS = {
+    "grape": '<circle cx="12" cy="9" r="2.3"/><circle cx="8.5" cy="12" r="2.3"/><circle cx="15.5" cy="12" r="2.3"/><circle cx="12" cy="15" r="2.3"/><circle cx="10" cy="18.5" r="2"/><circle cx="14" cy="18.5" r="2"/><path d="M12 6.7V3m0 0c1.5 0 3 .8 4 2"/>',
+    "shield": '<path d="M12 3l7 3v6c0 4.4-3 7.7-7 9-4-1.3-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
+    "leaf": '<path d="M5 19c0-8 5-13 15-14-1 10-6 15-14 15"/><path d="M5 19l7-7"/>',
+    "speed": '<path d="M4 15a8 8 0 1116 0"/><path d="M12 15l4-5"/><circle cx="12" cy="15" r="1.3"/>',
+    "arrow": '<path d="M5 12h14M13 6l6 6-6 6"/>',
+    "ext": '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/>',
+    "phone": '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a1 1 0 01-1 1A16 16 0 014 5a1 1 0 011-1"/>',
+    "mail": '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+    "pin": '<path d="M12 21s-7-6.2-7-12a7 7 0 0114 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+    "clock": '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    "calendar": '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+    "Facebook": '<path d="M14 8h3V4h-3a4 4 0 00-4 4v3H7v4h3v7h4v-7h3l1-4h-4V8z"/>',
+    "Instagram": '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8"/>',
+    "YouTube": '<rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="M10 9.5v5l4.5-2.5z"/>',
+}
+
+
+def icon(name, cls="icon"):
+    return (f'<svg class="{cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" '
+            f'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{ICONS[name]}</svg>')
+
+
+# ------------------------------------------------------------------ analytics
+def analytics():
+    """Plausible: cookieless, no personal data stored -> no consent banner needed."""
+    if not C.PLAUSIBLE_DOMAIN or PREVIEW:
+        return ""
+    return (f'<script defer data-domain="{C.PLAUSIBLE_DOMAIN}" '
+            f'src="https://plausible.io/js/script.outbound-links.js"></script>\n'
+            '<script>window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)}</script>')
+
+
+# ------------------------------------------------------------------ layout
+def layout(ctx, title, description, body, hero_img=None):
+    lang = ctx.lang
+    other = "en" if lang == "de" else "de"
+    canonical = f"{C.SITE_URL}/{ctx.path}"
+    alt_links = "".join(
+        f'<link rel="alternate" hreflang="{l}" href="{C.SITE_URL}/{C.PAGES[ctx.key][l]}">' for l in ("de", "en")
+    ) + f'<link rel="alternate" hreflang="x-default" href="{C.SITE_URL}/{C.PAGES[ctx.key]["de"]}">'
+    nav = "".join(
+        f'<li><a href="{ctx.page(k)}"{" aria-current=page" if k == ctx.key else ""}>{e(t(C.NAV_LABELS[k], lang))}</a></li>'
+        for k in C.NAV
+    )
+    og_img = f"{C.SITE_URL}/assets/img/{hero_img or 'hero-mosel.jpg'}"
+    full_title = title if "CH engineering" in title else f"{title} | CH engineering"
+    org = {
+        "@context": "https://schema.org", "@type": "Organization", "name": C.COMPANY["name"],
+        "url": C.SITE_URL, "email": C.COMPANY["email"], "telephone": C.COMPANY["phone"],
+        "logo": f"{C.SITE_URL}/assets/img/logo-white.png",
+        "address": {"@type": "PostalAddress", "streetAddress": C.COMPANY["street"],
+                    "postalCode": "54536", "addressLocality": "Kröv", "addressCountry": "DE"},
+        "sameAs": list(C.COMPANY["social"].values()),
+    }
+    return f"""<!DOCTYPE html>
+<html lang="{lang}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{e(full_title)}</title>
+<meta name="description" content="{e(description)}">
+<link rel="canonical" href="{canonical}">
+{alt_links}
+<meta property="og:type" content="website">
+<meta property="og:title" content="{e(full_title)}">
+<meta property="og:description" content="{e(description)}">
+<meta property="og:image" content="{og_img}">
+<meta property="og:url" content="{canonical}">
+<meta property="og:locale" content="{'de_DE' if lang == 'de' else 'en_US'}">
+<meta name="theme-color" content="#14201a">
+<link rel="icon" href="{ctx.asset('assets/favicon.svg')}" type="image/svg+xml">
+<link rel="stylesheet" href="{ctx.asset('static/css/site.css')}">
+{analytics()}
+<script type="application/ld+json">{json.dumps(org, ensure_ascii=False)}</script>
+</head>
+<body>
+<a class="skip" href="#main">{e(t(C.UI['skip'], lang))}</a>
+<header class="site-header" data-header>
+  <div class="wrap header-inner">
+    <a class="brand" href="{ctx.page('home')}" aria-label="CH engineering – {e(t(C.NAV_LABELS['home'], lang))}">
+      <img src="{ctx.asset('assets/img/logo-white.png')}" alt="CH engineering" width="180" height="46">
+    </a>
+    <nav class="main-nav" id="main-nav" aria-label="Hauptnavigation">
+      <ul>{nav}</ul>
+      <a class="lang" href="{ctx.page(ctx.key, other)}" hreflang="{other}" lang="{other}">{other.upper()}<span class="sr"> – {e(t(C.UI['lang_switch'], lang))}</span></a>
+    </nav>
+    <button class="nav-toggle" aria-controls="main-nav" aria-expanded="false" data-nav-toggle>
+      <span></span><span></span><span class="sr">{e(t(C.UI['menu'], lang))}</span>
+    </button>
+  </div>
+</header>
+<main id="main">
+{body}
+</main>
+{footer(ctx)}
+<div class="lightbox" data-lightbox hidden><button class="lb-close" aria-label="{e(t(C.UI['close'], lang))}">×</button><button class="lb-prev" aria-label="‹">‹</button><img alt=""><button class="lb-next" aria-label="›">›</button></div>
+<script src="{ctx.asset('static/js/site.js')}" defer></script>
+</body>
+</html>
+"""
+
+
+def footer(ctx):
+    lang, co = ctx.lang, C.COMPANY
+    social = "".join(
+        f'<a href="{u}" rel="noopener" aria-label="{n}">{icon(n)}</a>' for n, u in co["social"].items()
+    )
+    links = "".join(f'<li><a href="{ctx.page(k)}">{e(t(C.NAV_LABELS[k], lang))}</a></li>' for k in C.NAV)
+    hours = "<br>".join(e(h) for h in t(C.UI["hours_text"], lang))
+    return f"""<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-brand">
+      <img src="{ctx.asset('assets/img/logo-white.png')}" alt="CH engineering" width="180" height="46" loading="lazy">
+      <p>{e(t(C.UI['footer_claim'], lang))}</p>
+      <div class="social" aria-label="{e(t(C.UI['follow'], lang))}">{social}</div>
+    </div>
+    <div>
+      <h2>{e(t(C.UI['hq'], lang))}</h2>
+      <p>{e(co['name'])}<br>{e(co['street'])}<br>{e(co['zip_city'])}</p>
+      <p><a href="tel:{co['phone'].replace(' ', '')}">{e(co['phone_display'])}</a><br>
+      <a href="mailto:{co['email']}">{e(co['email'])}</a></p>
+    </div>
+    <div>
+      <h2>{e(t(C.UI['hours'], lang))}</h2>
+      <p>{hours}</p>
+    </div>
+    <div>
+      <h2>CH engineering</h2>
+      <ul class="footer-links">{links}</ul>
+    </div>
+  </div>
+  <div class="wrap footer-bottom">
+    <span>© {TODAY.year} {e(co['name'])}. {e(t(C.UI['copyright'], lang))}</span>
+    <span><a href="{ctx.page('imprint')}">{e(t(C.NAV_LABELS['imprint'], lang))}</a> · <a href="{ctx.page('privacy')}">{e(t(C.NAV_LABELS['privacy'], lang))}</a></span>
+  </div>
+</footer>"""
+
+
+# ------------------------------------------------------------------ building blocks
+def paras(items):
+    return "".join(f"<p>{e(p)}</p>" for p in items)
+
+
+def page_hero(ctx, d, title=None):
+    lang = ctx.lang
+    return f"""<section class="page-hero">
+  {img(ctx, d['hero_img'], '', 'page-hero-img', eager=True)}
+  <div class="wrap page-hero-content">
+    <p class="kicker">{e(t(d['kicker'], lang))}</p>
+    <h1>{e(title or t(d['title'], lang))}</h1>
+    <p class="lead">{e(t(d['lead'], lang))}</p>
+  </div>
+</section>"""
+
+
+def spec_rows(ctx, rows):
+    return "".join(f"<tr><th scope=row>{e(t(k, ctx.lang))}</th><td>{e(t(v, ctx.lang))}</td></tr>" for k, v in rows)
+
+
+def gallery(ctx, names, alt):
+    items = "".join(
+        f'<a href="{ctx.asset("assets/img/" + n)}" class="g-item" data-lb>{img(ctx, n, alt, sizes="(min-width: 900px) 33vw, 50vw")}</a>'
+        for n in names
+    )
+    return f'<div class="gallery">{items}</div>'
+
+
+def cta_band(ctx, title, text):
+    lang = ctx.lang
+    return f"""<section class="cta-band">
+  <div class="wrap cta-inner">
+    <div><h2>{e(title)}</h2><p>{e(text)}</p></div>
+    <div class="cta-actions">
+      <a class="btn btn-light" href="{ctx.page('contact')}">{e(t(C.UI['contact_cta'], lang))} {icon('arrow')}</a>
+      <a class="btn btn-ghost-light" href="tel:{C.COMPANY['phone'].replace(' ', '')}">{icon('phone')} {e(C.COMPANY['phone_display'])}</a>
+    </div>
+  </div>
+</section>"""
+
+
+def fmt_date(iso, lang):
+    d = dt.date.fromisoformat(iso)
+    if lang == "de":
+        months = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
+        return f"{d.day}. {months[d.month - 1]} {d.year}"
+    return d.strftime("%B %-d, %Y")
+
+
+def news_card(ctx, n, full=True):
+    lang = ctx.lang
+    title = t(n["title"], lang)
+    text = t(n.get("body") or n["summary"], lang)
+    media = (f'<div class="news-media">{img(ctx, n["img"], "", sizes="(min-width: 900px) 33vw, 100vw")}</div>'
+             if n.get("img") and ((IMG_DIR / n["img"]).exists() or not (IMG_DIR / ".fetched").exists())
+             else '<div class="news-media news-media-empty">' + icon("grape", "icon big") + "</div>")
+    link = ""
+    if n.get("link"):
+        label = t(C.UI["read_source"], lang) if n.get("summary") else n["source"]
+        link = f'<a class="news-link" href="{n["link"]}" rel="noopener">{e(label)} {icon("ext")}</a>'
+    src = f'<span class="news-source">{e(t(C.UI["source"], lang))}: {e(n["source"])}</span>' if n.get("summary") and n.get("source") else ""
+    return f"""<article class="news-card">
+  {media}
+  <div class="news-body">
+    <time datetime="{n['date']}">{fmt_date(n['date'], lang)}</time>
+    <h3>{e(title)}</h3>
+    <p>{e(text if full else text[:180].rsplit(' ', 1)[0] + ' …' if len(text) > 180 else text)}</p>
+    <div class="news-foot">{src}{link}</div>
+  </div>
+</article>"""
+
+
+# ------------------------------------------------------------------ pages
+def home(ctx):
+    h, lang = C.HOME, ctx.lang
+    events = ""
+    for ev in C.EVENTS:
+        if dt.date.fromisoformat(ev["end"]) >= TODAY:
+            events += f"""<div class="event" data-event-end="{ev['end']}">
+  <div class="wrap event-inner">
+    <span class="event-tag">{icon('calendar')} {e(t(C.UI['event_label'], lang))}</span>
+    <strong>{e(t(ev['title'], lang))}</strong>
+    <span class="event-text">{e(t(ev['text'], lang))}</span>
+    <a href="{ev['url']}" rel="noopener">{e(t(C.UI['learn_more'], lang))} {icon('arrow')}</a>
+  </div>
+</div>"""
+    stats = "".join(f'<div class="stat"><strong>{e(s["value"])}</strong><span>{e(t(s["label"], lang))}</span></div>' for s in h["stats"])
+    feats = "".join(
+        f'<div class="feature">{icon(f["icon"], "icon feature-icon")}<h3>{e(t(f["title"], lang))}</h3><p>{e(t(f["text"], lang))}</p></div>'
+        for f in h["features"]
+    )
+    prods = "".join(
+        f"""<a class="product-card" href="{ctx.page(p['page'])}">
+  <div class="product-media">{img(ctx, p['img'], t(p['title'], lang), sizes='(min-width: 900px) 33vw, 100vw')}</div>
+  <div class="product-body"><h3>{e(t(p['title'], lang))}</h3><p>{e(t(p['text'], lang))}</p>
+  <span class="more">{e(t(C.UI['learn_more'], lang))} {icon('arrow')}</span></div>
+</a>""" for p in h["products"]
+    )
+    news = "".join(news_card(ctx, n, full=False) for n in C.NEWS[:3])
+    s1, s2 = h["split1"], h["split2"]
+    body = f"""{events}
+<section class="hero">
+  {img(ctx, 'hero-mosel.jpg', 'Steillagen-Vollernter MSH an der Mosel' if lang == 'de' else 'Steep Slope Harvester MSH on the Mosel', 'hero-img', eager=True)}
+  <div class="wrap hero-content">
+    <p class="kicker">{e(t(h['hero_kicker'], lang))}</p>
+    <h1>{e(t(h['hero_title'], lang))}</h1>
+    <p class="lead">{e(t(h['hero_text'], lang))}</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="{ctx.page('msh')}">{e(t(C.UI['learn_more'], lang))} {icon('arrow')}</a>
+      <a class="btn btn-ghost-light" href="{ctx.page('contact')}">{e(t(C.UI['contact_cta'], lang))}</a>
+    </div>
+  </div>
+  <div class="wrap"><div class="stats">{stats}</div></div>
+</section>
+
+<section class="section">
+  <div class="wrap intro">
+    <div><p class="kicker dark">{e(t(h['intro_kicker'], lang))}</p><h2>{e(t(h['intro_title'], lang))}</h2></div>
+    <div class="prose">{paras(t(h['intro'], lang))}</div>
+  </div>
+  <div class="wrap features">{feats}</div>
+</section>
+
+<section class="split">
+  <div class="split-media">{img(ctx, 'msh-mosel.jpg', '', sizes='(min-width: 900px) 50vw, 100vw')}</div>
+  <div class="split-body">
+    <p class="kicker dark">{e(t(s1['kicker'], lang))}</p>
+    <h2>{e(t(s1['title'], lang))}</h2>
+    <div class="prose">{paras(t(s1['text'], lang))}</div>
+  </div>
+</section>
+<section class="split split-rev">
+  <div class="split-media">{img(ctx, 'grapes-2.jpg', 'Leseergebnis' if lang == 'de' else 'Harvest result', sizes='(min-width: 900px) 50vw, 100vw')}</div>
+  <div class="split-body">
+    <p class="kicker dark">{e(t(s2['kicker'], lang))}</p>
+    <h2>{e(t(s2['title'], lang))}</h2>
+    <div class="prose">{paras(t(s2['text'], lang))}</div>
+    <a class="btn btn-dark" href="{ctx.page('msh')}">{e(t(C.UI['learn_more'], lang))} {icon('arrow')}</a>
+  </div>
+</section>
+
+<section class="section section-tint">
+  <div class="wrap">
+    <h2 class="section-title">{e(t(h['products_title'], lang))}</h2>
+    <div class="products">{prods}</div>
+  </div>
+</section>
+
+<section class="section story">
+  <div class="wrap story-inner">
+    <div class="story-text">
+      <p class="kicker dark">{e(t(h['story_kicker'], lang))}</p>
+      <h2>{e(t(h['story_title'], lang))}</h2>
+      <p>{e(t(h['story'], lang))}</p>
+    </div>
+    <div class="story-media">{img(ctx, 'msh-studio-ut125.jpg', '', sizes='(min-width: 900px) 40vw, 100vw')}</div>
+  </div>
+</section>
+
+<section class="section section-tint">
+  <div class="wrap">
+    <div class="section-head"><div><p class="kicker dark">{e(t(C.UI['news_kicker'], lang))}</p><h2 class="section-title">News</h2></div>
+    <a class="text-link" href="{ctx.page('news')}">{e(t(C.UI['all_news'], lang))} {icon('arrow')}</a></div>
+    <div class="news-grid">{news}</div>
+  </div>
+</section>
+{cta_band(ctx, t(h['cta_title'], lang), t(h['cta_text'], lang))}"""
+    return layout(ctx, t(h["title"], lang), t(h["description"], lang), body)
+
+
+def msh(ctx):
+    m, lang = C.MSH, ctx.lang
+    secs = ""
+    for i, s in enumerate(m["sections"]):
+        secs += f"""<section class="split{' split-rev' if i % 2 else ''} split-light">
+  <div class="split-media contain">{img(ctx, s['img'], t(m['title'], lang), sizes='(min-width: 900px) 50vw, 100vw')}</div>
+  <div class="split-body"><h2>{e(t(s['title'], lang))}</h2><div class="prose">{paras(t(s['text'], lang))}</div></div>
+</section>"""
+    quality = "".join(f'<a href="{ctx.asset("assets/img/" + n)}" class="q-item" data-lb>{img(ctx, n, "Leseergebnis" if lang == "de" else "Harvest result", sizes="(min-width: 900px) 16vw, 33vw")}</a>' for n in m["quality_imgs"])
+    body = f"""{page_hero(ctx, m)}
+{secs}
+<section class="section section-dark">
+  <div class="wrap quality">
+    <div><p class="kicker">{e('Leseergebnis' if lang == 'de' else 'Harvest results')}</p><h2>{e(t(m['quality_title'], lang))}</h2><p>{e(t(m['quality_text'], lang))}</p></div>
+    <div class="quality-grid">{quality}</div>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap specs-wrap">
+    <h2 class="section-title">{e(t(m['specs_title'], lang))}</h2>
+    <table class="specs"><tbody>{spec_rows(ctx, m['specs'])}</tbody></table>
+    <p class="fine">{e(t(m['specs_foot'], lang))}<br>{e(t(C.UI['specs_note'], lang))}</p>
+  </div>
+</section>
+<section class="section section-tint">
+  <div class="wrap"><h2 class="section-title">{e(t(C.UI['gallery'], lang))}</h2>{gallery(ctx, m['gallery'], t(m['title'], lang))}</div>
+</section>
+{cta_band(ctx, t(C.HOME['cta_title'], lang), t(C.HOME['cta_text'], lang))}"""
+    return layout(ctx, t(m["title"], lang), t(m["description"], lang), body, m["hero_img"])
+
+
+def ut125(ctx):
+    u, lang = C.UT125, ctx.lang
+    feats = ""
+    for i, f in enumerate(u["features"]):
+        feats += f"""<section class="split{' split-rev' if i % 2 else ''} split-light">
+  <div class="split-media">{img(ctx, f['img'], t(f['title'], lang), sizes='(min-width: 900px) 50vw, 100vw')}</div>
+  <div class="split-body"><p class="kicker dark">{e(t(f['kicker'], lang))}</p><h2>{e(t(f['title'], lang))}</h2><p>{e(t(f['text'], lang))}</p></div>
+</section>"""
+    groups = "".join(
+        f'<div class="spec-group"><h3>{e(t(g, lang))}</h3><table class="specs"><tbody>{spec_rows(ctx, rows)}</tbody></table></div>'
+        for g, rows in u["spec_groups"]
+    )
+    body = f"""{page_hero(ctx, u)}
+<section class="section"><div class="wrap narrow"><p class="big-text">{e(t(u['intro'], lang))}</p></div></section>
+{feats}
+<section class="section section-tint">
+  <div class="wrap">
+    <h2 class="section-title">{e(t(u['specs_title'], lang))}</h2>
+    <div class="spec-groups">{groups}</div>
+    <p class="fine">{e(t(u['specs_foot'], lang))}<br>{e(t(C.UI['specs_note'], lang))}</p>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap"><h2 class="section-title">{e(t(C.UI['gallery'], lang))}</h2>{gallery(ctx, u['gallery'], t(u['title'], lang))}</div>
+</section>
+{cta_band(ctx, t(C.HOME['cta_title'], lang), t(C.HOME['cta_text'], lang))}"""
+    return layout(ctx, t(u["title"], lang), t(u["description"], lang), body, u["hero_img"])
+
+
+def keller(ctx):
+    k, lang = C.KELLER, ctx.lang
+    mods = "".join(
+        f'<div class="module"><span class="module-num">{m["num"]}</span><h3>{e(t(m["title"], lang))}</h3><p>{e(t(m["text"], lang))}</p></div>'
+        for m in k["modules"]
+    )
+    body = f"""{page_hero(ctx, k)}
+<section class="section"><div class="wrap narrow"><p class="big-text">{e(t(k['intro'], lang))}</p></div>
+<div class="wrap modules">{mods}</div></section>
+<section class="section section-tint"><div class="wrap">{gallery(ctx, k['gallery'], t(k['title'], lang))}</div></section>
+{cta_band(ctx, t(C.NAV_LABELS['keller'], lang), t(k['cta'], lang))}"""
+    return layout(ctx, t(k["title"], lang), t(k["description"], lang), body, k["hero_img"])
+
+
+def news_page(ctx):
+    n, lang = C.NEWS_PAGE, ctx.lang
+    cards = "".join(news_card(ctx, x) for x in C.NEWS)
+    body = f"""{page_hero(ctx, n)}
+<section class="section"><div class="wrap news-grid news-grid-all">{cards}</div></section>"""
+    return layout(ctx, t(n["title"], lang), t(n["description"], lang), body, n["hero_img"])
+
+
+def contact(ctx):
+    c, lang, co = C.CONTACT_PAGE, ctx.lang, C.COMPANY
+    maps = "https://www.google.com/maps/search/?api=1&query="
+    hours = "<br>".join(e(h) for h in t(C.UI["hours_text"], lang))
+    p = co["production"]
+    body = f"""{page_hero(ctx, c)}
+<section class="section">
+  <div class="wrap contact-grid">
+    <div class="contact-card contact-main">
+      <h2>{e(t(C.UI['hq'], lang))}</h2>
+      <p class="addr">{icon('pin')}<span>{e(co['name'])}<br>{e(co['street'])}<br>{e(co['zip_city'])}</span></p>
+      <p>{icon('phone')}<a href="tel:{co['phone'].replace(' ', '')}">{e(co['phone_display'])}</a></p>
+      <p>{icon('mail')}<a href="mailto:{co['email']}">{e(co['email'])}</a></p>
+      <a class="btn btn-dark" href="{maps}{e(co['name'] + ', ' + co['street'] + ', ' + co['zip_city'])}" rel="noopener">{e(t(C.UI['route'], lang))} {icon('ext')}</a>
+    </div>
+    <div class="contact-card">
+      <h2>{e(t(C.UI['hours'], lang))}</h2>
+      <p>{icon('clock')}<span>{hours}</span></p>
+    </div>
+    <div class="contact-card">
+      <h2>{e(t(C.UI['production'], lang))}</h2>
+      <p class="addr">{icon('pin')}<span>{e(co['name'])}<br>{e(p['street'])}<br>{e(p['zip_city'])}</span></p>
+      <p>{icon('phone')}<a href="tel:{p['phone'].replace(' ', '')}">{e(p['phone_display'])}</a></p>
+      <a class="text-link" href="{maps}{e(p['street'] + ', ' + p['zip_city'])}" rel="noopener">{e(t(C.UI['route'], lang))} {icon('ext')}</a>
+    </div>
+  </div>
+</section>"""
+    return layout(ctx, t(c["title"], lang), t(c["description"], lang), body, c["hero_img"])
+
+
+def imprint(ctx):
+    lang, co = ctx.lang, C.COMPANY
+    md = "<br>".join(e(m) for m in co["managing_directors"])
+    if lang == "de":
+        body = f"""<h1>Impressum</h1>
+<p>Angaben gemäß § 5 DDG</p>
+<p><strong>{e(co['name'])}</strong><br>{e(co['street'])}<br>54536 Kröv/Mosel<br>Deutschland</p>
+<p>Telefon: <a href="tel:{co['phone'].replace(' ', '')}">{e(co['phone_display'])}</a><br>E-Mail: <a href="mailto:{co['email']}">{e(co['email'])}</a></p>
+<h2>Geschäftsführung</h2><p>{md}</p>
+<h2>Umsatzsteuer-ID</h2><p>Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG: {e(co['vat_id'])}</p>"""
+    else:
+        body = f"""<h1>Imprint</h1>
+<p>Information pursuant to § 5 DDG (German Digital Services Act)</p>
+<p><strong>{e(co['name'])}</strong><br>{e(co['street'])}<br>54536 Kröv/Mosel<br>Germany</p>
+<p>Phone: <a href="tel:{co['phone'].replace(' ', '')}">{e(co['phone_display'])}</a><br>Email: <a href="mailto:{co['email']}">{e(co['email'])}</a></p>
+<h2>Managing directors</h2><p>{md}</p>
+<h2>VAT ID</h2><p>VAT identification number pursuant to § 27a UStG: {e(co['vat_id'])}</p>"""
+    title = t(C.NAV_LABELS["imprint"], lang)
+    return layout(ctx, title, title + " – " + co["name"], f'<section class="section legal"><div class="wrap narrow prose">{body}</div></section>')
+
+
+# --- privacy policy: imported from the old site's HTML, sanitised
+class Sanitizer(HTMLParser):
+    KEEP = {"p", "br", "strong", "b", "em", "i", "ul", "ol", "li", "a", "h2", "h3", "h4"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.out, self.depth_skip = [], 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("script", "style"):
+            self.depth_skip += 1
+        if self.depth_skip or tag not in self.KEEP:
+            return
+        if tag == "a":
+            href = dict(attrs).get("href", "")
+            if href.startswith(("http", "mailto:")):
+                self.out.append(f'<a href="{e(href)}" rel="noopener">')
+                return
+            self.out.append("<a>")
+            return
+        self.out.append(f"<{tag}>")
+
+    def handle_endtag(self, tag):
+        if tag in ("script", "style"):
+            self.depth_skip -= 1
+        if not self.depth_skip and tag in self.KEEP and tag != "br":
+            self.out.append(f"</{tag}>")
+
+    def handle_data(self, data):
+        if not self.depth_skip:
+            self.out.append(e(data))
+
+
+def privacy_html():
+    f = ROOT / "tools" / "_import" / "datenschutz.html"
+    custom = ROOT / "legal" / "datenschutz.html"
+    if custom.exists():  # an edited version takes precedence
+        return custom.read_text()
+    if not f.exists():
+        return "<p>Die Datenschutzerklärung wird aus der bisherigen Website übernommen.</p>"
+    raw = f.read_text(errors="ignore")
+    m = re.search(r'data-elementor-type="wp-page".*?>(.*)<footer', raw, re.S) or re.search(r"<article.*?>(.*?)</article>", raw, re.S)
+    s = Sanitizer()
+    s.feed(m.group(1) if m else raw)
+    out = "".join(s.out)
+    out = re.sub(r"<p>\s*</p>", "", out)
+    out = re.sub(r"<h[1-4]>\s*Datenschutzerklärung\s*</h[1-4]>", "", out, count=1)
+    return out
+
+
+PRIVACY_ADDENDUM = """
+<h2>Hosting dieser Website</h2>
+<p>Diese Website wird über GitHub Pages bereitgestellt (GitHub Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA). Beim Aufruf der Website verarbeitet GitHub technisch notwendige Verbindungsdaten, insbesondere die IP-Adresse, um die Seiten auszuliefern und die Sicherheit des Dienstes zu gewährleisten. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO; unser berechtigtes Interesse liegt in einer sicheren und zuverlässigen Bereitstellung der Website. GitHub ist unter dem EU-US Data Privacy Framework zertifiziert. Weitere Informationen: <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" rel="noopener">GitHub-Datenschutzerklärung</a>.</p>
+<h2>Webanalyse mit Plausible Analytics</h2>
+<p>Wir nutzen den Webanalysedienst Plausible Analytics (Plausible Insights OÜ, Västriku tn 2, 50403 Tartu, Estland). Die Daten werden ausschließlich auf Servern in der EU verarbeitet. Plausible verwendet keine Cookies und speichert keine Informationen auf Ihrem Endgerät. Es werden keine personenbezogenen Daten gespeichert: Die IP-Adresse wird nur kurzzeitig zur Bildung einer täglich wechselnden, anonymen Kennung genutzt und nicht gespeichert. Erfasst werden u. a. aufgerufene Seiten, Verweisquelle, Land, Gerätetyp, Browser und Betriebssystem in aggregierter Form. Eine Wiedererkennung von Besuchern über mehrere Tage oder Websites hinweg ist nicht möglich.</p>
+<p>Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO; unser berechtigtes Interesse liegt in der statistischen Auswertung der Nutzung, um unser Angebot zu verbessern. Weitere Informationen: <a href="https://plausible.io/data-policy" rel="noopener">plausible.io/data-policy</a>.</p>
+<h2>Cookies auf dieser Website</h2>
+<p>Diese Website setzt keine Cookies und bindet keine Inhalte von Drittanbietern (z. B. Schriftarten, Karten oder Videos) ein. Links zu sozialen Netzwerken sind einfache Verweise; Daten werden erst übertragen, wenn Sie einen solchen Link anklicken.</p>
+"""
+
+
+def privacy(ctx):
+    lang = ctx.lang
+    note = ""
+    if lang == "en":
+        note = '<p class="note">This privacy policy is provided in German. The German version is legally binding.</p>'
+    body = f"""<section class="section legal"><div class="wrap narrow prose" lang="de">
+<h1>{'Datenschutzerklärung' if lang == 'de' else 'Privacy policy'}</h1>{note}
+{privacy_html()}
+{PRIVACY_ADDENDUM}
+</div></section>"""
+    title = t(C.NAV_LABELS["privacy"], lang)
+    return layout(ctx, title, title + " – " + C.COMPANY["name"], body)
+
+
+def redirect_page(target_rel, target_abs):
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"><title>Weiterleitung</title>
+<link rel="canonical" href="{target_abs}"><meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="0; url={target_rel}"></head>
+<body><a href="{target_rel}">{target_abs}</a></body></html>"""
+
+
+# ------------------------------------------------------------------ main
+RENDER = {"home": home, "msh": msh, "ut125": ut125, "keller": keller, "news": news_page,
+          "contact": contact, "imprint": imprint, "privacy": privacy}
+
+
+def write(path, html_text):
+    target = OUT / path / "index.html"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(html_text)
+
+
+def main():
+    if OUT.exists():
+        shutil.rmtree(OUT)
+    OUT.mkdir()
+    for d in ("static", "assets"):
+        if (ROOT / d).exists():
+            shutil.copytree(ROOT / d, OUT / d, ignore=shutil.ignore_patterns(".fetched"))
+    urls = []
+    for key, paths in C.PAGES.items():
+        for lang, path in paths.items():
+            write(path, RENDER[key](Ctx(path, lang, key)))
+            urls.append(f"{C.SITE_URL}/{path}")
+    for old, (key, lang) in C.REDIRECTS.items():
+        ctx = Ctx(old, lang, key)
+        write(old, redirect_page(ctx.page(key), f"{C.SITE_URL}/{C.PAGES[key][lang]}"))
+    (OUT / "sitemap.xml").write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "".join(f"  <url><loc>{u}</loc></url>\n" for u in urls) + "</urlset>\n")
+    (OUT / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {C.SITE_URL}/sitemap.xml\n")
+    (OUT / "404.html").write_text(redirect_page("/", C.SITE_URL + "/"))
+    if (ROOT / "CNAME").exists():
+        shutil.copy(ROOT / "CNAME", OUT / "CNAME")
+    (OUT / ".nojekyll").write_text("")
+    print(f"Built {len(urls)} pages + {len(C.REDIRECTS)} redirects into {OUT}")
+
+
+if __name__ == "__main__":
+    main()
