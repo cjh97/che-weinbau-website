@@ -267,6 +267,61 @@ def section(title, inner, *, grey=False, link=None):
 </section>"""
 
 
+MAPS = {"eu": ("tools/map_eu.txt", -12, 56), "ca": ("tools/map_us.txt", -126, 43)}  # grid file, lon0, lat0 (0.5° grid)
+
+
+def _map_svg(ctx, which):
+    """Inline SVG: muted dot geography, accent markers, thin leader lines to labels."""
+    fn, lon0, lat0 = MAPS[which]
+    rows = (ROOT / fn).read_text().strip().split("|")
+    grid = ["".join(("1" if m[0] == "#" else "0") * int(m[1:]) for m in re.findall(r"[#.]\d+", r)) for r in rows]
+    W, H = len(grid[0]) * 10, len(grid) * 10
+    dots = "".join(f"M{x*10+5} {y*10+5}h0" for y, r in enumerate(grid) for x, c in enumerate(r) if c == "1")
+    marks = ""
+    for i, loc in enumerate(C.LOCATIONS):
+        if loc["map"] != which:
+            continue
+        x = (loc["lon"] - lon0) / 0.5 * 10 + 5
+        y = (lat0 - loc["lat"]) / 0.5 * 10 + 5
+        lx, ly = loc["lx"], loc["ly"]
+        label = e(t(loc["label"], ctx.lang))
+        anchor = "end" if lx < x - 20 else ("start" if lx > x + 20 else "middle")
+        story = " has-story" if loc.get("story") else ""
+        tag = f' role="button" tabindex="0" aria-label="{label}"' if story else ""
+        marks += (f'<g class="mk{story}{" mk-home" if loc.get("home") else ""}" data-loc="{i}"{tag}>'
+                  f'<line x1="{x:.0f}" y1="{y:.0f}" x2="{lx}" y2="{ly + (6 if ly > y else -4)}"/>'
+                  f'<circle class="mk-hit" cx="{x:.0f}" cy="{y:.0f}" r="22"/><circle class="mk-dot" cx="{x:.0f}" cy="{y:.0f}" r="{8 if loc.get("home") else 6.5}"/>'
+                  f'<text x="{lx}" y="{ly}" text-anchor="{anchor}">{label}</text></g>')
+    return (f'<svg class="map-svg map-{which}" viewBox="0 0 {W} {H}" role="img" aria-label="{e(t(C.HOME["map_title"], ctx.lang))}">'
+            f'<path class="geo" d="{dots}"/>{marks}</svg>')
+
+
+def world_map(ctx):
+    lang = ctx.lang
+    stories = ""
+    first = True
+    for i, loc in enumerate(C.LOCATIONS):
+        st = loc.get("story")
+        if not st:
+            continue
+        pic = f'<div class="story-img">{img(ctx, st["img"], t(st["title"], lang), sizes="(min-width: 900px) 25vw, 100vw")}</div>' if st.get("img") else ""
+        link = f'<a class="text-link" href="{st["link"]}" rel="noopener">{e(t(C.UI["read_source"], lang))}</a>' if st.get("link") else ""
+        stories += (f'<article class="story{"" if pic else " story-noimg"}" data-story="{i}"{"" if first else " hidden"}>{pic}'
+                    f'<div class="story-text"><h3>{e(t(st["title"], lang))}</h3><p>{e(t(st["text"], lang))}</p>{link}</div></article>')
+        first = False
+    ca = "Kalifornien, USA" if lang == "de" else "California, USA"
+    return f"""<section class="section worldmap">
+  <div class="wrap">
+    <div class="worldmap-head"><h2>{e(t(C.HOME['map_title'], lang))}</h2><p>{e(t(C.HOME['map_text'], lang))}</p></div>
+    <div class="worldmap-grid">
+      <figure class="inset">{_map_svg(ctx, 'ca')}<figcaption>{ca}</figcaption></figure>
+      <div class="map-eu-wrap">{_map_svg(ctx, 'eu')}</div>
+    </div>
+    <div class="stories">{stories}</div>
+  </div>
+</section>"""
+
+
 def cards(ctx, items):
     """items: (image, title, text, href or None)"""
     out = ""
@@ -358,11 +413,10 @@ def home(ctx):
     caption = ("Leseergebnis des Steillagen-Vollernters, direkt aus dem Sammelbehälter." if lang == "de"
                else "Harvest result of the Steep Slope Harvester, straight from the collecting bin.")
     body = f"""{hero(ctx, 'hero-mosel.jpg', t(h['hero_title'], lang), home=True, top=events, actions=actions, stats=h['stats'])}
-{split(ctx, 'msh-mechanical.jpg', t(h['intro_title'], lang), paras(t(h['intro'], lang)))}
-{split(ctx, 'msh-g01.jpg', t(s1['title'], lang), paras(t(s1['text'], lang)), rev=True)}
-{section(t(h['intro_kicker'], lang), feats, grey=True)}
-{split(ctx, 'grapes-2.jpg', t(s2['title'], lang), paras(t(s2['text'], lang)) + more, caption=caption)}
-{section(t(h['products_title'], lang), f'<div class="models">{models}</div>', grey=True)}
+{split(ctx, 'msh-g04.jpg', t(h['short_title'], lang), f"<p>{e(t(h['short_text'], lang))}</p>" + f'<a class="text-link" href="{ctx.page("msh")}">{e(t(h["short_link"], lang))}</a>')}
+{section(t(h['benefits_title'], lang), feats, grey=True)}
+{section(t(h['products_title'], lang), f'<div class="models">{models}</div>')}
+{world_map(ctx)}
 {split(ctx, 'msh-studio-ut125.jpg', t(h['story_title'], lang), f"<p>{e(t(h['story'], lang))}</p>", rev=True, studio=True)}
 {cta_band(ctx, t(h['cta_title'], lang), t(h['cta_text'], lang))}"""
     return layout(ctx, t(h["title"], lang), t(h["description"], lang), body)

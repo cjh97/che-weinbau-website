@@ -198,6 +198,18 @@ HOME = {
         },
     },
     "products_title": {"de": "Unsere Lösungen", "en": "Our solutions"},
+    "short_title": {"de": "Steillage, Terrasse, Ebene.", "en": "Steep slope, terrace, flat."},
+    "short_text": {
+        "de": "Der MSH erntet bis 75 % Steigung, in terrassierten Weinbergen und in der Ebene – mit nur einer Fahrgasse und einer universell einsetzbaren Maschine. Nach über einem Jahrzehnt Praxis ist er der nächste Entwicklungsschritt der mechanisierten Steillagen-Lese.",
+        "en": "The MSH harvests on slopes up to 75 %, in terraced vineyards and on flat ground – with a single driving lane and one universally applicable machine. After more than a decade in the field, it is the next step in mechanized steep-slope harvesting.",
+    },
+    "short_link": {"de": "Zum Steillagen-Vollernter", "en": "Discover the harvester"},
+    "benefits_title": {"de": "Traubenqualität auf Handlese-Niveau.", "en": "Hand-picked quality, mechanized."},
+    "map_title": {"de": "In Europas Steillagen. Und in Kalifornien.", "en": "Across Europe's steep slopes. And in California."},
+    "map_text": {
+        "de": "Von der Mosel bis an den Douro – und bis ins Sonoma Valley. Wählen Sie einen Ort, um mehr zu erfahren.",
+        "en": "From the Mosel to the Douro – and on to Sonoma Valley. Select a location to learn more.",
+    },
     "products": [
         {"page": "msh", "img": "msh-mechanical.jpg",
          "title": {"de": "Steillagen-Vollernter MSH", "en": "Steep Slope Harvester MSH"},
@@ -223,6 +235,38 @@ HOME = {
     "cta_text": {"de": "Wir beraten Sie gerne – persönlich, telefonisch oder bei einer Vorführung in Ihrem Weinberg.",
                  "en": "We're happy to advise you – in person, by phone or with a demonstration in your vineyard."},
 }
+
+# ---------------------------------------------------------------- world map
+# Regions where machines are in use. lon/lat in degrees. Add or remove entries freely.
+LOCATIONS = [
+    # map: "eu" (Europe, lon -12..22, lat 56..35) or "ca" (California inset, lon -126..-114, lat 43..32)
+    # lx/ly: label position in map units (10 units = 0.5°); "story": shown when the marker is clicked
+    {"map": "eu", "lon": 7.1, "lat": 49.98, "lx": 300, "ly": 80, "label": {"de": "Mosel", "en": "Mosel"}, "home": True,
+     "story": {"img": "msh-mosel.jpg",
+               "title": {"de": "Mosel – hier hat alles begonnen", "en": "Mosel – where it all began"},
+               "text": {"de": "In Kröv entwickelt, in Wintrich gebaut: An der Mosel hat der Steillagen-Vollernter seinen Ursprung. Bis 2022 waren bereits 25 Maschinen in Deutschland im Einsatz.",
+                        "en": "Developed in Kröv, built in Wintrich: the steep slope harvester was born on the Mosel. By 2022, 25 machines were already at work in Germany."}}},
+    {"map": "eu", "lon": 9.9, "lat": 49.9, "lx": 470, "ly": 75, "label": {"de": "Franken", "en": "Franconia"},
+     "story": {"img": "news-br.jpg",
+               "title": {"de": "Franken – Lese ohne Saisonkräfte", "en": "Franconia – harvesting without seasonal labour"},
+               "text": {"de": "Der Bayerische Rundfunk begleitete einen fränkischen Winzer bei Thüngersheim beim Test des Vollernters in einer Lage mit 40 % Hangneigung.",
+                        "en": "Bavarian broadcaster BR followed a Franconian winegrower near Thüngersheim testing the harvester on a 40 % slope."}}},
+    {"map": "eu", "lon": 15.4, "lat": 48.4, "lx": 590, "ly": 215, "label": {"de": "Österreich", "en": "Austria"}},
+    {"map": "eu", "lon": 7.3, "lat": 46.3, "lx": 395, "ly": 290, "label": {"de": "Schweiz", "en": "Switzerland"}},
+    {"map": "eu", "lon": 4.8, "lat": 45.3, "lx": 225, "ly": 250, "label": {"de": "Frankreich", "en": "France"}},
+    {"map": "eu", "lon": 11.3, "lat": 46.5, "lx": 520, "ly": 290, "label": {"de": "Italien", "en": "Italy"}},
+    {"map": "eu", "lon": -7.8, "lat": 41.15, "lx": 150, "ly": 360, "label": {"de": "Douro", "en": "Douro"},
+     "story": {"img": "news-douro.jpg",
+               "title": {"de": "Douro – Terrassen in Portugal", "en": "Douro – terraces in Portugal"},
+               "text": {"de": "2019 erntete der Vollernter in den steilen, über Generationen gebauten Terrassen des Douro-Tals.",
+                        "en": "In 2019 the harvester worked the steep, centuries-old terraces of the Douro Valley."}}},
+    {"map": "ca", "lon": -122.45, "lat": 38.29, "lx": 110, "ly": 70, "label": {"de": "Sonoma", "en": "Sonoma"},
+     "story": {"img": None,
+               "title": {"de": "Sonoma – erster Einsatz in Nordamerika", "en": "Sonoma – first in North America"},
+               "text": {"de": "2022 setzte das Weingut Gundlach Bundschu im Sonoma Valley als erstes in den USA einen Steillagen-Vollernter ein.",
+                        "en": "In 2022, Gundlach Bundschu in Sonoma Valley became the first US winery to use a steep slope harvester."},
+               "link": "https://www.winebusiness.com/news/article/264252"}},
+]
 
 # ---------------------------------------------------------------- MSH page
 MSH = {

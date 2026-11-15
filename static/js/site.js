@@ -46,6 +46,20 @@
     if (el.getAttribute("data-event-end") < today) el.remove();
   });
 
+  // Map: clicking a marker with a story shows its card
+  var marks = document.querySelectorAll(".worldmap .has-story");
+  function showStory(id) {
+    document.querySelectorAll(".worldmap .story").forEach(function (st) { st.hidden = st.getAttribute("data-story") !== id; });
+    document.querySelectorAll(".worldmap .mk").forEach(function (m) { m.classList.toggle("active", m.getAttribute("data-loc") === id); });
+  }
+  marks.forEach(function (m) {
+    var id = m.getAttribute("data-loc");
+    m.addEventListener("click", function () { showStory(id); });
+    m.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); showStory(id); } });
+  });
+  var home = document.querySelector(".worldmap .mk-home.has-story") || marks[0];
+  if (home) showStory(home.getAttribute("data-loc"));
+
   // Lightbox for galleries
   var lb = document.querySelector("[data-lightbox]");
   var links = Array.prototype.slice.call(document.querySelectorAll("[data-lb]"));
