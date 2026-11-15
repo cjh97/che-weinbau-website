@@ -420,3 +420,11 @@ a.card:hover .card-media img { transform: scale(1.04); }
   .split .split-media, .split-rev .split-media { order: 2; }
   .split-body { padding-bottom: 40px; }
 }
+
+/* desktop: text in photo/text sections lines up with the page's content width (same left/right edges as headings, logo, footer) */
+@media (min-width: 901px) {
+  :root { --gutter: max(32px, calc((100vw - var(--wrap)) / 2)); }
+  .split-body { max-width: none; padding-top: clamp(56px, 8vw, 120px); padding-bottom: clamp(56px, 8vw, 120px);
+    padding-left: clamp(40px, 6vw, 96px); padding-right: var(--gutter); }
+  .split-rev .split-body { padding-left: var(--gutter); padding-right: clamp(40px, 6vw, 96px); }
+}
