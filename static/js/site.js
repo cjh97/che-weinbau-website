@@ -22,6 +22,18 @@
   window.addEventListener("resize", onScroll);
   onScroll();
 
+  // Phones: lock the hero height to the first screen size so it doesn't jump while Safari's toolbars resize
+  var lastW = window.innerWidth;
+  function setHeroH(force) {
+    if (force || window.innerWidth !== lastW) {
+      lastW = window.innerWidth;
+      document.documentElement.style.setProperty("--hero-h", window.innerHeight + "px");
+    }
+  }
+  setHeroH(true);
+  window.addEventListener("resize", function () { setHeroH(false); });
+  window.addEventListener("orientationchange", function () { setTimeout(function () { setHeroH(true); }, 300); });
+
   // Mobile navigation
   var toggle = document.querySelector("[data-nav-toggle]");
   if (toggle) {

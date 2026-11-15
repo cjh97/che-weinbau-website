@@ -395,3 +395,28 @@ a.card:hover .card-media img { transform: scale(1.04); }
 .section:not(.section-grey):not(.section-dark) + .section:not(.section-grey):not(.section-dark) { padding-top: 0; }
 .section-grey + .section-grey { padding-top: 0; }
 .site-footer .footer-sub { margin-top: 1.6em; }
+
+/* phones: hero height fixed once on load (set by site.js), so nothing shifts when Safari's bars move */
+@media (max-width: 900px) {
+  .hero.hero-home, .hero.hero-figures { height: var(--hero-h, 100svh); min-height: 0; }
+  .hero { height: calc(var(--hero-h, 100svh) * .64); }
+  .hero-img { animation: none !important; }
+}
+/* phones: map */
+@media (max-width: 900px) {
+  .worldmap-grid { gap: 20px; }
+  .map-eu-wrap { margin: 0 -8px; }
+  .map-eu .mk text { font-size: 30px; stroke-width: 9px; }
+  .map-eu .mk-dot { r: 10; }
+  .map-eu .mk.active .mk-dot, .map-eu .has-story:hover .mk-dot { r: 14; }
+  .mk-hit { r: 34; }
+  .inset { width: 100%; display: grid; grid-template-columns: 45% 1fr; align-items: end; gap: 16px; padding: 16px; }
+  .inset figcaption { margin: 0 0 4px; }
+  .map-ca .mk text { font-size: 34px; }
+  .stories { margin-top: 24px; padding-top: 24px; }
+}
+/* phones: text before photo in every split, so photos never stack back-to-back (hero → text → photo → text …) */
+@media (max-width: 900px) {
+  .split .split-media, .split-rev .split-media { order: 2; }
+  .split-body { padding-bottom: 40px; }
+}

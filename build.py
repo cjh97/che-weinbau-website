@@ -288,7 +288,7 @@ def _map_svg(ctx, which):
         y = (lat0 - loc["lat"]) / 0.5 * 10 + 5
         lx, ly = loc["lx"], loc["ly"]
         label = e(t(loc["label"], ctx.lang))
-        anchor = "end" if lx < x - 20 else ("start" if lx > x + 20 else "middle")
+        anchor = loc.get("anchor") or ("end" if lx < x - 20 else ("start" if lx > x + 20 else "middle"))
         story = " has-story" if loc.get("story") else ""
         tag = f' role="button" tabindex="0" aria-label="{label}"' if story else ""
         marks += (f'<g class="mk{story}{" mk-home" if loc.get("home") else ""}" data-loc="{i}"{tag}>'
