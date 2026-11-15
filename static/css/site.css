@@ -394,3 +394,4 @@ a.card:hover .card-media img { transform: scale(1.04); }
 /* two white sections in a row: don't double the spacing */
 .section:not(.section-grey):not(.section-dark) + .section:not(.section-grey):not(.section-dark) { padding-top: 0; }
 .section-grey + .section-grey { padding-top: 0; }
+.site-footer .footer-sub { margin-top: 1.6em; }

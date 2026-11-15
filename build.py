@@ -187,7 +187,10 @@ def footer(ctx):
       <a href="mailto:{co['email']}">{e(co['email'])}</a></p>
     </div>
     <div>
-      <h2>{e(t(C.UI['hours'], lang))}</h2>
+      <h2>{e(t(C.UI['production'], lang))}</h2>
+      <p>{e(co['name'])}<br>{e(co['production']['street'])}<br>{e(co['production']['zip_city'])}</p>
+      <p><a href="tel:{co['production']['phone'].replace(' ', '')}">{e(co['production']['phone_display'])}</a></p>
+      <h2 class="footer-sub">{e(t(C.UI['hours'], lang))}</h2>
       <p>{hours}</p>
     </div>
     <div>
