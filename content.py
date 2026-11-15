@@ -454,7 +454,7 @@ KELLER = {
                   "en": "For whole-bunch pressing, the mill is swapped for an empty box via four quick-release fasteners – no tools needed."}},
     ],
     "gallery": ["keller-1.jpg", "keller-2.jpg", "keller-3.jpg"],
-    "system_title": {"de": "Die Traubenannahme im Baukastensystem", "en": "A modular grape reception system"},
+    "system_title": {"de": "Die Traubenannahme\nim Baukastensystem", "en": "A modular grape\nreception system"},
     "custom_title": {"de": "Geplant für Ihren Betrieb", "en": "Planned for your winery"},
     "cta_title": {"de": "Traubenannahme planen?", "en": "Planning a grape reception?"},
     "cta_text": {"de": "Wir beraten Sie gerne – persönlich, telefonisch oder direkt bei Ihnen im Betrieb.", "en": "We're happy to advise you – in person, by phone or at your winery."},

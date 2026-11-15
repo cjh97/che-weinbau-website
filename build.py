@@ -253,13 +253,14 @@ def statement(text, extra=""):
 
 
 def split(ctx, image, title, body_html, *, rev=False, studio=False, caption=None, label=None, media=None, grey=False):
-    media_html = media or img(ctx, image, caption or title, sizes="(min-width: 900px) 50vw, 100vw")
+    title_alt = title.replace("\n", " ")
+    media_html = media or img(ctx, image, caption or title_alt, sizes="(min-width: 900px) 50vw, 100vw")
     cap = f'<figcaption>{e(caption)}</figcaption>' if caption else ""
     lab = f'<p class="label">{e(label)}</p>' if label else ""
     cls = "split" + (" split-rev" if rev else "") + (" split-grey" if grey else "")
     return f"""<section class="{cls}">
   <figure class="split-media{' studio' if studio else ''}{' split-media-grid' if media else ''}">{media_html}{cap}</figure>
-  <div class="split-body">{lab}<h2>{e(title)}</h2>{body_html}</div>
+  <div class="split-body">{lab}<h2>{e(title).replace(chr(10), '<br>')}</h2>{body_html}</div>
 </section>"""
 
 

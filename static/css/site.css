@@ -428,3 +428,4 @@ a.card:hover .card-media img { transform: scale(1.04); }
     padding-left: clamp(40px, 6vw, 96px); padding-right: var(--gutter); }
   .split-rev .split-body { padding-left: var(--gutter); padding-right: clamp(40px, 6vw, 96px); }
 }
+.split-body h2 { font-size: clamp(1.8rem, 2.9vw, 2.6rem); }
