@@ -48,6 +48,9 @@ class Ctx:
         return self.href(C.PAGES[key][lang or self.lang])
 
     def asset(self, p):
+        if p.endswith((".css", ".js")):   # version by content, so browsers never show a stale script
+            import hashlib
+            p += "?v=" + hashlib.md5((ROOT / p).read_bytes()).hexdigest()[:8]
         return self.prefix + p
 
 

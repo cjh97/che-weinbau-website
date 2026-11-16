@@ -53,29 +53,46 @@
       });
     }
     // prism: a side profile (x,y – counter-clockwise seen from the valley side) extruded across the machine
-    function prism(out, pf, z0, z1, fill) {
-      var n = pf.length, j;
+    // round the corners of a profile; returns points flagged soft where they belong to a corner arc
+    function roundPf(pf, r) {
+      var out = [], n = pf.length, j, k;
+      for (j = 0; j < n; j++) {
+        var A = pf[(j + n - 1) % n], B = pf[j], C = pf[(j + 1) % n],
+            la = Math.hypot(A[0] - B[0], A[1] - B[1]), lc = Math.hypot(C[0] - B[0], C[1] - B[1]),
+            d = Math.min(r, la * 0.45, lc * 0.45),
+            p1 = [B[0] + (A[0] - B[0]) / la * d, B[1] + (A[1] - B[1]) / la * d],
+            p2 = [B[0] + (C[0] - B[0]) / lc * d, B[1] + (C[1] - B[1]) / lc * d];
+        for (k = 0; k <= 5; k++) {
+          var u = k / 5, a = (1 - u) * (1 - u), b = 2 * u * (1 - u), c = u * u;
+          out.push([a * p1[0] + b * B[0] + c * p2[0], a * p1[1] + b * B[1] + c * p2[1], k < 5]);
+        }
+      }
+      return out;
+    }
+    function prism(out, pf0, z0, z1, fill, r) {
+      var pf = roundPf(pf0, r === undefined ? 7 : r), n = pf.length, j;
       out.push({ t: "f", p: pf.map(function (q) { return [q[0], q[1], z1]; }), fill: fill || BG, stroke: WH, cull: 1 });
       out.push({ t: "f", p: pf.slice().reverse().map(function (q) { return [q[0], q[1], z0]; }), fill: fill || BG, stroke: WH, cull: 1 });
       for (j = 0; j < n; j++) {
         var u = pf[j], v = pf[(j + 1) % n];
-        out.push({ t: "f", p: [[u[0],u[1],z0],[v[0],v[1],z0],[v[0],v[1],z1],[u[0],u[1],z1]], fill: fill || BG, stroke: WH, cull: 1 });
+        out.push({ t: "f", p: [[u[0],u[1],z0],[v[0],v[1],z0],[v[0],v[1],z1],[u[0],u[1],z1]], fill: fill || BG, stroke: WH, cull: 1, soft: u[2] });
       }
     }
+    function rbox(out, x0, x1, y0, y1, z0, z1, r) { prism(out, [[x0,y0],[x1,y0],[x1,y1],[x0,y1]], z0, z1, null, r); }
     var trackPf = [[-25,0],[100,0],[112,8],[112,20],[100,28],[-25,28],[-37,20],[-37,8]];
-    prism(machine, trackPf, -75, -55); prism(machine, trackPf, -25, -5);                       // crawler tracks, rounded ends
+    prism(machine, trackPf, -75, -55, null, 9); prism(machine, trackPf, -25, -5, null, 9);                       // crawler tracks, rounded ends
     prism(machine, [[-30,28],[112,28],[119,52],[-30,52]], -72, -8);                            // lower body, sloped tail
-    box(machine, -30, 42, 52, 112, -70, -10);                                                  // engine / bin with CH mark
-    box(machine, -22, 30, 112, 126, -58, -22);                                                 // cover on top
+    rbox(machine, -30, 42, 52, 112, -70, -10, 8);                                                  // engine / bin with CH mark
+    rbox(machine, -22, 30, 112, 126, -58, -22, 6);                                                 // cover on top
     var cabPf = [[48,52],[110,52],[115,84],[98,130],[58,130],[48,116]];
-    prism(machine, cabPf, -68, -12);                                                           // cab with raked glass
-    box(machine, 56, 99, 130, 135, -70, -10);                                                  // roof
+    prism(machine, cabPf, -68, -12, null, 9);                                                           // cab with raked glass
+    rbox(machine, 56, 99, 130, 135, -70, -10, 2.5);                                                  // roof
     box(machine, 42, 46, 104, 152, -22, -18);                                                  // exhaust
     box(machine, -48, -30, 2, 118, -16, 2);                                                    // conveyor column
     var headPf = [[-142,4],[-48,4],[-48,124],[-104,124],[-142,36]];
-    prism(machine, headPf, R - 30, R - 13); prism(machine, headPf, R + 13, R + 30);            // harvesting head, raked front
-    box(machine, -104, -48, 124, 140, R - 32, R + 32);                                         // bridge over the row
-    box(machine, -98, -58, 140, 150, R - 18, R + 18);                                          // head cover
+    prism(machine, headPf, R - 30, R - 13, null, 14); prism(machine, headPf, R + 13, R + 30, null, 14);            // harvesting head, raked front
+    rbox(machine, -104, -48, 124, 140, R - 32, R + 32, 6);                                         // bridge over the row
+    rbox(machine, -98, -58, 140, 150, R - 18, R + 18, 5);                                          // head cover
     machine.push({ t: "f", p: [[58,74,-11.5],[107,74,-11.5],[110,84,-11.5],[96,123,-11.5],[61,123,-11.5],[58,112,-11.5]], fill: "#2e3033", stroke: WH, bias: 20 });
     machine.push({ t: "f", p: [[-142,6,R-13],[-48,6,R-13],[-48,0,R-2],[-142,0,R-2]], fill: "#6b4a3a", stroke: WH });
     machine.push({ t: "f", p: [[-142,6,R+13],[-48,6,R+13],[-48,0,R+2],[-142,0,R+2]], fill: "#6b4a3a", stroke: WH });
@@ -90,8 +107,8 @@
       machine.push({ t: "l", p: hs, lw: 3.5, bias: 28 });
     }
     for (i = 0; i < 5; i++) {
-      machine.push({ t: "l", p: [[-118, 104 - i * 20, R - 13], [-118, 99 - i * 20, R - 7], [-118, 101 - i * 20, R - 2]], lw: 1.4, bias: 30 });
-      machine.push({ t: "l", p: [[-118, 94 - i * 20, R + 13], [-118, 89 - i * 20, R + 7], [-118, 91 - i * 20, R + 2]], lw: 1.4, bias: 30 });
+      machine.push({ t: "l", p: [[-118, 104 - i * 20, R - 13], [-118, 99 - i * 20, R - 7], [-118, 101 - i * 20, R - 2]], lw: 1.4 });
+      machine.push({ t: "l", p: [[-118, 94 - i * 20, R + 13], [-118, 89 - i * 20, R + 7], [-118, 91 - i * 20, R + 2]], lw: 1.4 });
     }
     var hose = [];
     for (i = 0; i <= 16; i++) { k = i / 16; hose.push([-80 + 84 * k, 150 + 40 * Math.sin(Math.PI * k) - 24 * k, R - (R + 40) * k]); }
@@ -151,7 +168,12 @@
             return;
           }
           g.beginPath(); g.moveTo(q[0][0], q[0][1]); for (j = 1; j < q.length; j++) g.lineTo(q[j][0], q[j][1]);
-          if (pr.t === "f") { g.closePath(); g.fillStyle = pr.fill; g.fill(); g.strokeStyle = pr.stroke; g.lineWidth = pr.lw || 1.5; g.stroke(); }
+          if (pr.t === "f" && pr.soft) {
+            g.closePath(); g.fillStyle = pr.fill; g.fill(); g.strokeStyle = pr.fill; g.lineWidth = 0.6; g.stroke();
+            g.beginPath(); g.moveTo(q[0][0], q[0][1]); g.lineTo(q[1][0], q[1][1]); g.moveTo(q[2][0], q[2][1]); g.lineTo(q[3][0], q[3][1]);
+            g.strokeStyle = pr.stroke; g.lineWidth = 1.5; g.stroke();
+          }
+          else if (pr.t === "f") { g.closePath(); g.fillStyle = pr.fill; g.fill(); g.strokeStyle = pr.stroke; g.lineWidth = pr.lw || 1.5; g.stroke(); }
           else { g.strokeStyle = pr.col || WH; g.lineWidth = pr.lw || 1.5; g.stroke(); }
         });
       }
@@ -176,12 +198,11 @@
       });
       // machine + moving track tread
       machine.forEach(function (pr) { add(pr, 0, 0, 0, 1); });
-      for (j = 0; j < 12; j++) {
-        var tx = -25 + j * 11 + toff; if (tx > 100) continue;
-        add({ t: "l", p: [[tx,28.4,-75],[tx,28.4,-55]], lw: 1.2, bias: 12 }, 0, 0, 0, 1);
-        add({ t: "l", p: [[tx,28.4,-25],[tx,28.4,-5]], lw: 1.2, bias: 12 }, 0, 0, 0, 1);
-        add({ t: "l", p: [[tx,22,-4.6],[tx,28,-4.6]], lw: 1.2, bias: 22 }, 0, 0, 0, 1);
-        add({ t: "l", p: [[100 - (j * 11 + toff),0,-4.6],[100 - (j * 11 + toff),6,-4.6]], lw: 1.2, bias: 22 }, 0, 0, 0, 1);
+      var ta = 1 - ramp(t, 0, 0.18);
+      if (ta > 0.02) for (j = 0; j < 12; j++) {
+        var tx = -25 + j * 11 + toff, bx = 100 - (j * 11 + toff); if (tx > 100) continue;
+        add({ t: "l", p: [[tx,22,-4.6],[tx,28,-4.6]], lw: 1.2, bias: 22 }, 0, 0, 0, ta);
+        add({ t: "l", p: [[bx,0,-4.6],[bx,6,-4.6]], lw: 1.2, bias: 22 }, 0, 0, 0, ta);
       }
       draw(prims); g.globalAlpha = 1;
       // readout
