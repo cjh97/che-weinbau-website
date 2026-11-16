@@ -409,13 +409,14 @@ def world_map(ctx):
   <div class="wrap">
     <div class="worldmap-head"><h2>{e(t(C.HOME['map_title'], lang))}</h2><p>{e(t(C.HOME['map_text'], lang))}</p></div>
     <div class="worldmap-grid">
-      <div class="regions">{regions}</div>
-      <div class="map-eu-wrap">{_map_svg(ctx, 'eu')}
+      <div class="map-side">
+        <div class="regions">{regions}</div>
         <div class="insets">
           <figure class="inset">{_map_svg(ctx, 'ca')}<figcaption>{ca}</figcaption></figure>
           <figure class="inset">{_map_svg(ctx, 'il')}<figcaption>{il}</figcaption></figure>
         </div>
       </div>
+      <div class="map-eu-wrap">{_map_svg(ctx, 'eu')}</div>
     </div>
     <div class="stories">{stories}</div>
   </div>
