@@ -300,6 +300,77 @@ def _map_svg(ctx, which):
             f'<path class="geo" d="{dots}"/>{marks}</svg>')
 
 
+def _leaf(x, y, rot):
+    return f'<ellipse class="leaf" cx="{x}" cy="{y}" rx="8" ry="4.5" transform="rotate({rot} {x} {y})"/>'
+
+
+def _grapes(x, y):
+    pts = [(-5, 0), (0, 0), (5, 0), (-2.5, 4.6), (2.5, 4.6), (0, 9.2)]
+    return "".join(f'<circle class="grape" cx="{x+dx}" cy="{y+dy}" r="2.7"/>' for dx, dy in pts)
+
+
+def _vine_front(x, y):
+    """One vine seen along the row: post, leaves up the canopy, two grape clusters."""
+    out = f'<path class="post" d="M{x} {y}V{y-88}"/>'
+    for i, (dx, dy, r) in enumerate([(-9, -24, -30), (9, -32, 30), (-10, -44, -20), (10, -54, 25), (-9, -64, -35), (9, -74, 35), (-4, -84, -60), (6, -90, 60)]):
+        out += _leaf(x + dx, y + dy, r)
+    return out + _grapes(x - 7, y - 40) + _grapes(x + 8, y - 22)
+
+
+def _vine_row_side():
+    """Trellis row seen from the side, repeating every 240 units so it can scroll past endlessly.
+    Returns (posts + wire + leaves, grapes) as two layers; grapes are clipped to the part not yet harvested."""
+    base = '<path class="post" d="M-1500 -30H1500"/>'
+    grapes = ""
+    for x in range(-1440, 1480, 40):
+        i = (x // 40) % 6
+        if i % 2 == 0:
+            base += f'<path class="post" d="M{x} 0V-40"/>'
+        base += _leaf(x + 8, -34 - (i % 3) * 4, 20 + i * 11) + _leaf(x + 24, -27 - (i % 2) * 6, -30 - i * 9)
+        if i % 2:
+            grapes += _grapes(x + 14, -22)
+    return base, grapes
+
+
+def slope_story(ctx):
+    """Scroll scene. 1) side view: ground tilts 0 → 75 %. 2) view turns 90°: terrace cross-section,
+    the MSH in one lane with its head over the row. 3) outline of a conventional straddle harvester for comparison."""
+    lang = ctx.lang
+    labels = t(C.HOME["slope_labels"], lang)
+    flats = [(-930, 510), (-670, 360), (-410, 210), (-150, 60), (110, -90), (370, -240), (630, -390)]
+    prof = "M-1200 510" + "".join(f"H{x}V{y}" for x, y in flats) + "H1200"
+    vines = "".join(_vine_front(x + 45, y) for x, y in flats if x != -150)
+    vine_head = _vine_front(-105, 60)
+    row_base, row_grapes = _vine_row_side()
+    feat_imgs = ["grapes-1.jpg", "msh-g02.jpg", "msh-g06.jpg", "msh-row.jpg"]
+    stations = "".join(
+        f'<article class="station" data-station><div class="station-img">{img(ctx, feat_imgs[i], t(f["title"], lang), sizes="380px")}</div>'
+        f'<div><h3>{e(t(f["title"], lang))}</h3><p>{e(t(f["text"], lang))}</p></div></article>'
+        for i, f in enumerate(C.HOME["features"]))
+    return f"""<section class="slope-story" data-slope data-labels="{e('|'.join(labels))}">
+  <div class="slope-sticky">
+    <div class="wrap"><h2>{e(t(C.HOME['slope_title'], lang))}</h2></div>
+    <canvas class="slope-canvas" data-scene aria-hidden="true"></canvas>
+    <div class="wrap slope-read"><strong data-slope-num>1</strong><span data-slope-label>{e(labels[3])}</span></div>
+  </div>
+</section>"""
+
+
+def quality(ctx):
+    """Photo that opens up to full width while scrolling, headline on it, the four benefits as a quiet row below."""
+    h, lang = C.HOME, ctx.lang
+    items = "".join(f'<div class="benefit"><h3>{e(t(f["title"], lang))}</h3><p>{e(t(f["text"], lang))}</p></div>' for f in h["features"])
+    return f"""<section class="expand" data-expand>
+  <div class="expand-frame">
+    {img(ctx, 'msh-row.jpg', t(h['benefits_title'], lang), 'expand-img')}
+    <div class="expand-fade"></div>
+    <div class="wrap expand-text"><h2>{e(t(h['benefits_title'], lang))}</h2></div>
+  </div>
+  <div class="wrap benefits">{items}</div>
+  <div class="wrap benefits-more"><a class="text-link" href="{ctx.page('msh')}">{e(t(h['short_link'], lang))}</a></div>
+</section>"""
+
+
 def world_map(ctx):
     lang = ctx.lang
     stories = ""
@@ -417,8 +488,8 @@ def home(ctx):
     caption = ("Leseergebnis des Steillagen-Vollernters, direkt aus dem Sammelbehälter." if lang == "de"
                else "Harvest result of the Steep Slope Harvester, straight from the collecting bin.")
     body = f"""{hero(ctx, 'hero-mosel.jpg', t(h['hero_title'], lang), home=True, top=events, actions=actions, stats=h['stats'])}
-{split(ctx, 'msh-g04.jpg', t(h['short_title'], lang), f"<p>{e(t(h['short_text'], lang))}</p>" + f'<a class="text-link" href="{ctx.page("msh")}">{e(t(h["short_link"], lang))}</a>')}
-{section(t(h['benefits_title'], lang), feats, grey=True)}
+{slope_story(ctx)}
+{quality(ctx)}
 {section(t(h['products_title'], lang), f'<div class="models">{models}</div>')}
 {world_map(ctx)}
 {split(ctx, 'msh-studio-ut125.jpg', t(h['story_title'], lang), f"<p>{e(t(h['story'], lang))}</p>", rev=True, studio=True)}

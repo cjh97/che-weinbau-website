@@ -34,6 +34,202 @@
   window.addEventListener("resize", function () { setHeroH(false); });
   window.addEventListener("orientationchange", function () { setTimeout(function () { setHeroH(true); }, 300); });
 
+  // Slope story: a small real-3D scene on a canvas. Machine, vines and grapes are 3D objects;
+  // the ground tilts to 75 %, returns to flat, then the camera orbits 90° while terraces rise.
+  var slope = document.querySelector("[data-slope]");
+  if (slope) {
+    var cv = slope.querySelector("[data-scene]"), g = cv.getContext("2d"),
+        sn = slope.querySelector("[data-slope-num]"), sl = slope.querySelector("[data-slope-label]"),
+        readEl = slope.querySelector(".slope-read"), labels = slope.getAttribute("data-labels").split("|");
+    var ramp = function (p, a, b) { var k = Math.min(1, Math.max(0, (p - a) / (b - a))); return k * k * (3 - 2 * k); };
+    var BG = "#17191b", WH = "#ffffff", R = 25, H = 150, D = 2200;
+
+    // ---- model -------------------------------------------------------------
+    var machine = [], vineT = [], grapeT = [];
+    function box(out, x0, x1, y0, y1, z0, z1, fill) {
+      var p = [[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0],[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]];
+      [[4,5,6,7],[1,0,3,2],[5,1,2,6],[0,4,7,3],[7,6,2,3],[0,1,5,4]].forEach(function (f) {
+        out.push({ t: "f", p: f.map(function (i) { return p[i]; }), fill: fill || BG, stroke: WH, cull: 1 });
+      });
+    }
+    // prism: a side profile (x,y – counter-clockwise seen from the valley side) extruded across the machine
+    function prism(out, pf, z0, z1, fill) {
+      var n = pf.length, j;
+      out.push({ t: "f", p: pf.map(function (q) { return [q[0], q[1], z1]; }), fill: fill || BG, stroke: WH, cull: 1 });
+      out.push({ t: "f", p: pf.slice().reverse().map(function (q) { return [q[0], q[1], z0]; }), fill: fill || BG, stroke: WH, cull: 1 });
+      for (j = 0; j < n; j++) {
+        var u = pf[j], v = pf[(j + 1) % n];
+        out.push({ t: "f", p: [[u[0],u[1],z0],[v[0],v[1],z0],[v[0],v[1],z1],[u[0],u[1],z1]], fill: fill || BG, stroke: WH, cull: 1 });
+      }
+    }
+    var trackPf = [[-25,0],[100,0],[112,8],[112,20],[100,28],[-25,28],[-37,20],[-37,8]];
+    prism(machine, trackPf, -75, -55); prism(machine, trackPf, -25, -5);                       // crawler tracks, rounded ends
+    prism(machine, [[-30,28],[112,28],[119,52],[-30,52]], -72, -8);                            // lower body, sloped tail
+    box(machine, -30, 42, 52, 112, -70, -10);                                                  // engine / bin with CH mark
+    box(machine, -22, 30, 112, 126, -58, -22);                                                 // cover on top
+    var cabPf = [[48,52],[110,52],[115,84],[98,130],[58,130],[48,116]];
+    prism(machine, cabPf, -68, -12);                                                           // cab with raked glass
+    box(machine, 56, 99, 130, 135, -70, -10);                                                  // roof
+    box(machine, 42, 46, 104, 152, -22, -18);                                                  // exhaust
+    box(machine, -48, -30, 2, 118, -16, 2);                                                    // conveyor column
+    var headPf = [[-142,4],[-48,4],[-48,124],[-104,124],[-142,36]];
+    prism(machine, headPf, R - 30, R - 13); prism(machine, headPf, R + 13, R + 30);            // harvesting head, raked front
+    box(machine, -104, -48, 124, 140, R - 32, R + 32);                                         // bridge over the row
+    box(machine, -98, -58, 140, 150, R - 18, R + 18);                                          // head cover
+    machine.push({ t: "f", p: [[58,74,-11.5],[107,74,-11.5],[110,84,-11.5],[96,123,-11.5],[61,123,-11.5],[58,112,-11.5]], fill: "#2e3033", stroke: WH, bias: 20 });
+    machine.push({ t: "f", p: [[-142,6,R-13],[-48,6,R-13],[-48,0,R-2],[-142,0,R-2]], fill: "#6b4a3a", stroke: WH });
+    machine.push({ t: "f", p: [[-142,6,R+13],[-48,6,R+13],[-48,0,R+2],[-142,0,R+2]], fill: "#6b4a3a", stroke: WH });
+    var i, k, arc = [];
+    for (i = 0; i <= 14; i++) { k = (40 + i * 20) * Math.PI / 180; arc.push([4 + 14 * Math.cos(k), 80 + 14 * Math.sin(k), -9.5]); }
+    machine.push({ t: "l", p: arc, lw: 2.5, bias: 25 });
+    machine.push({ t: "l", p: [[6,80,-9.5],[28,80,-9.5]], lw: 2.5, bias: 25 }, { t: "l", p: [[28,66,-9.5],[28,94,-9.5]], lw: 2.5, bias: 25 });
+    for (i = 0; i < 4; i++) machine.push({ t: "l", p: [[-28 + i * 0, 33 + i * 5, -7.5], [108 + i * 1.4, 33 + i * 5, -7.5]], lw: 1, bias: 25, col: "rgba(255,255,255,.5)" });
+    for (i = 0; i < 3; i++) {                                                                  // hoses down the outside of the head
+      var hs = [];
+      for (k = 0; k <= 10; k++) hs.push([-66 - i * 9 - 34 * Math.pow(k / 10, 1.6), 140 - 112 * (k / 10), R + 31 + 5 * Math.sin(Math.PI * k / 10)]);
+      machine.push({ t: "l", p: hs, lw: 3.5, bias: 28 });
+    }
+    for (i = 0; i < 5; i++) {
+      machine.push({ t: "l", p: [[-118, 104 - i * 20, R - 13], [-118, 99 - i * 20, R - 7], [-118, 101 - i * 20, R - 2]], lw: 1.4, bias: 30 });
+      machine.push({ t: "l", p: [[-118, 94 - i * 20, R + 13], [-118, 89 - i * 20, R + 7], [-118, 91 - i * 20, R + 2]], lw: 1.4, bias: 30 });
+    }
+    var hose = [];
+    for (i = 0; i <= 16; i++) { k = i / 16; hose.push([-80 + 84 * k, 150 + 40 * Math.sin(Math.PI * k) - 24 * k, R - (R + 40) * k]); }
+    machine.push({ t: "l", p: hose, lw: 4.5, bias: 10 });
+    machine.push({ t: "c", p: [[-18, 14, -4.5]], r: 9, stroke: WH, bias: 25 }, { t: "c", p: [[94, 14, -4.5]], r: 9, stroke: WH, bias: 25 });
+
+    // one vine: stem, leaves, two grape clusters (relative to its foot)
+    vineT.push({ t: "l", p: [[0,0,0],[0,92,0]], lw: 1.2, col: "rgba(255,255,255,.45)" });
+    [[-9,24,3],[9,33,-3],[-10,44,-4],[10,54,4],[-9,64,3],[9,74,-3],[-4,85,2]].forEach(function (c, n) {
+      var s = n % 2 ? 1 : -1;
+      vineT.push({ t: "f", p: [[c[0]-8,c[1]-3*s,c[2]],[c[0],c[1]+4.5,c[2]+2.5*s],[c[0]+8,c[1]+3*s,c[2]],[c[0],c[1]-4.5,c[2]-2.5*s]], fill: "#3a4630", stroke: "#9dbb6a", lw: 1 });
+    });
+    [[-7,44,5],[8,26,-5]].forEach(function (c) {
+      [[-5,0,0],[0,0,2],[5,0,0],[-2.5,-4.6,1],[2.5,-4.6,-1],[0,-9.2,0]].forEach(function (o) {
+        grapeT.push({ t: "c", p: [[c[0]+o[0],c[1]+o[1],c[2]+o[2]]], r: 3, fill: "#d8c66e" });
+      });
+    });
+    var rows = [{ z: R, lvl: 0, lane: 1 }, { z: R - 180, lvl: 1 }, { z: R + 180, lvl: -1 }];
+    var XA = -1000, XB = 2600, zs = [-1500, -290, -110, 70, 250, 700];
+
+    // ---- render ------------------------------------------------------------
+    var curP = 0, W = 0, Hh = 0;
+    function render(p, ts) {
+      var dpr = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight;
+      if (!w || !h) return;
+      if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+      g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); g.lineJoin = "round"; g.lineCap = "round";
+      var pct = 75 * (ramp(p, 0.03, 0.27) - ramp(p, 0.33, 0.5)), t = ramp(p, 0.56, 0.8), hh = ramp(p, 0.52, 0.74);
+      var a = Math.atan(pct / 100), ca = Math.cos(a), sa = Math.sin(a), psi = t * Math.PI / 2, cy = Math.cos(psi), sy = Math.sin(psi),
+          phi = (5 + 7 * t) * Math.PI / 180, cp = Math.cos(phi), sp = Math.sin(phi);
+      var S = Math.min(h / 560, w / 430), CX = w * 0.5 - (w > 900 ? w * 0.04 * (1 - t) : 0), CY = h * 0.5;
+      var off = (ts / 1000 * 34) % 80, toff = (ts / 1000 * 46) % 12;
+      function P(x, y, z, lvl) {
+        y += (lvl || 0) * H * hh;
+        var x1 = x * ca - y * sa, y1 = x * sa + y * ca - 55;
+        var x2 = x1 * cy + z * sy, z2 = -x1 * sy + z * cy;
+        var y3 = y1 * cp - z2 * sp, z3 = y1 * sp + z2 * cp, dz = D - z3;
+        if (dz < 260) return null;
+        var f = D / dz;
+        return [CX + x2 * f * S, CY - y3 * f * S, z3, f];
+      }
+      var prims = [];
+      function add(pr, ox, oz, lvl, alpha) {
+        var q = [], d = 0, n = pr.p.length, j, pt;
+        for (j = 0; j < n; j++) { pt = P(pr.p[j][0] + ox, pr.p[j][1], pr.p[j][2] + oz, pr.p[j][3] !== undefined ? pr.p[j][3] : lvl); if (!pt) return; q.push(pt); d += pt[2]; }
+        if (pr.cull) { var ar = 0; for (j = 0; j < n; j++) { var u = q[j], v = q[(j + 1) % n]; ar += u[0] * v[1] - v[0] * u[1]; } if (ar >= 0) return; }
+        prims.push({ pr: pr, q: q, d: d / n + (pr.bias || 0), a: alpha });
+      }
+      function draw(list) {
+        list.sort(function (m, n) { return m.d - n.d; });
+        list.forEach(function (o) {
+          var pr = o.pr, q = o.q, j;
+          g.globalAlpha = o.a;
+          if (pr.t === "c") {
+            g.beginPath(); g.arc(q[0][0], q[0][1], pr.r * q[0][3] * S, 0, 6.2832);
+            if (pr.fill) { g.fillStyle = pr.fill; g.fill(); } if (pr.stroke) { g.strokeStyle = pr.stroke; g.lineWidth = 1.5; g.stroke(); }
+            return;
+          }
+          g.beginPath(); g.moveTo(q[0][0], q[0][1]); for (j = 1; j < q.length; j++) g.lineTo(q[j][0], q[j][1]);
+          if (pr.t === "f") { g.closePath(); g.fillStyle = pr.fill; g.fill(); g.strokeStyle = pr.stroke; g.lineWidth = pr.lw || 1.5; g.stroke(); }
+          else { g.strokeStyle = pr.col || WH; g.lineWidth = pr.lw || 1.5; g.stroke(); }
+        });
+      }
+      // ground: terraces (flat while hh = 0)
+      var j, lv;
+      for (j = 0; j < 5; j++) {
+        lv = 2 - j;
+        add({ t: "f", p: [[XA,0,zs[j]],[XB,0,zs[j]],[XB,0,zs[j+1]],[XA,0,zs[j+1]]], fill: "#222426", stroke: "rgba(255,255,255," + (j === 2 ? 0.55 : 0.22) + ")", lw: 1 }, 0, 0, lv, 1);
+        if (j < 4) add({ t: "f", p: [[XA,0,zs[j+1],lv-1],[XB,0,zs[j+1],lv-1],[XB,0,zs[j+1],lv],[XA,0,zs[j+1],lv]], fill: "#1c1e20", stroke: "rgba(255,255,255,.4)", lw: 1 }, 0, 0, 0, 1);
+      }
+      draw(prims); prims = [];
+      // vines and grapes
+      rows.forEach(function (rw) {
+        var al = rw.lane ? 1 : hh; if (al < 0.03) return;
+        add({ t: "l", p: [[XA,40,0],[1500,40,0]], lw: 1, col: "rgba(255,255,255,.3)" }, 0, rw.z, rw.lvl, al);
+        add({ t: "l", p: [[XA,78,0],[1500,78,0]], lw: 1, col: "rgba(255,255,255,.3)" }, 0, rw.z, rw.lvl, al);
+        for (var n = 0; n < 31; n++) {
+          var vx = -960 + n * 80 + off, m;
+          for (m = 0; m < vineT.length; m++) add(vineT[m], vx, rw.z, rw.lvl, al);
+          if (!rw.lane || vx < -140) for (m = 0; m < grapeT.length; m++) add(grapeT[m], vx, rw.z, rw.lvl, al);
+        }
+      });
+      // machine + moving track tread
+      machine.forEach(function (pr) { add(pr, 0, 0, 0, 1); });
+      for (j = 0; j < 12; j++) {
+        var tx = -25 + j * 11 + toff; if (tx > 100) continue;
+        add({ t: "l", p: [[tx,28.4,-75],[tx,28.4,-55]], lw: 1.2, bias: 12 }, 0, 0, 0, 1);
+        add({ t: "l", p: [[tx,28.4,-25],[tx,28.4,-5]], lw: 1.2, bias: 12 }, 0, 0, 0, 1);
+        add({ t: "l", p: [[tx,22,-4.6],[tx,28,-4.6]], lw: 1.2, bias: 22 }, 0, 0, 0, 1);
+        add({ t: "l", p: [[100 - (j * 11 + toff),0,-4.6],[100 - (j * 11 + toff),6,-4.6]], lw: 1.2, bias: 22 }, 0, 0, 0, 1);
+      }
+      draw(prims); g.globalAlpha = 1;
+      // readout
+      readEl.style.opacity = Math.min(1, Math.abs(2 * t - 1) * 1.6).toFixed(3);
+      if (t < 0.5) { sn.textContent = Math.round(pct) + " %"; sl.textContent = labels[pct < 20 ? 0 : pct < 55 ? 1 : 2]; }
+      else { sn.textContent = "1"; sl.textContent = labels[3]; }
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      slope.classList.add("is-static"); render(0.9, 0);
+      window.addEventListener("resize", function () { render(0.9, 0); });
+    } else {
+      var onSlope = function () {
+        var r = slope.getBoundingClientRect(), span = r.height - window.innerHeight;
+        curP = span > 0 ? Math.min(1, Math.max(0, -r.top / span)) : 1;
+      };
+      var loop = function (ts) {
+        var r = slope.getBoundingClientRect();
+        if (r.bottom > 0 && r.top < window.innerHeight) render(curP, ts);
+        requestAnimationFrame(loop);
+      };
+      window.addEventListener("scroll", onSlope, { passive: true }); window.addEventListener("resize", onSlope);
+      onSlope(); requestAnimationFrame(loop);
+    }
+  }
+
+  // Photo that opens to full width as it scrolls into view
+  var ex = document.querySelector("[data-expand]");
+  if (ex) {
+    var frame = ex.querySelector(".expand-frame");
+    var onEx = function () {
+      var r = frame.getBoundingClientRect(), vh = window.innerHeight;
+      var k = Math.min(1, Math.max(0, (vh - r.top) / (vh * 1.05)));
+      frame.style.setProperty("--k", (k * k * (3 - 2 * k)).toFixed(3));
+    };
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) frame.style.setProperty("--k", 1);
+    else { window.addEventListener("scroll", onEx, { passive: true }); window.addEventListener("resize", onEx); onEx(); }
+  }
+
+  // Home hero dims towards the dark scene as you scroll away from it
+  var heroHome = document.querySelector(".hero-home");
+  if (heroHome && document.querySelector("[data-slope]")) {
+    var dimHero = function () {
+      var k = Math.min(1, Math.max(0, window.scrollY / (heroHome.offsetHeight * 0.85)));
+      heroHome.style.setProperty("--dim", (k * k * (3 - 2 * k)).toFixed(3));
+    };
+    window.addEventListener("scroll", dimHero, { passive: true }); dimHero();
+  }
+
   // Mobile navigation
   var toggle = document.querySelector("[data-nav-toggle]");
   if (toggle) {

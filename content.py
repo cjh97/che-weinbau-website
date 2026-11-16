@@ -198,6 +198,9 @@ HOME = {
         },
     },
     "products_title": {"de": "Unsere Lösungen", "en": "Our solutions"},
+    "slope_title": {"de": "Eine Maschine. Jede Lage.", "en": "One machine. Every site."},
+    "slope_labels": {"de": ["In der Ebene", "Am Hang", "In der Steillage", "Fahrgasse genügt – auch in der Terrasse", "Herkömmliche Vollernter überfahren die Zeile – und brauchen zwei"],
+                     "en": ["On flat ground", "On the slope", "On the steep slope", "lane is enough – even on terraces", "Conventional harvesters straddle the row – and need two"]},
     "short_title": {"de": "Steillage, Terrasse, Ebene.", "en": "Steep slope, terrace, flat."},
     "short_text": {
         "de": "Der MSH erntet bis 75 % Steigung, in terrassierten Weinbergen und in der Ebene – mit nur einer Fahrgasse und einer universell einsetzbaren Maschine. Nach über einem Jahrzehnt Praxis ist er der nächste Entwicklungsschritt der mechanisierten Steillagen-Lese.",
