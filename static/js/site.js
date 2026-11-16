@@ -80,6 +80,9 @@
     }
     function rbox(out, x0, x1, y0, y1, z0, z1, r) { prism(out, [[x0,y0],[x1,y0],[x1,y1],[x0,y1]], z0, z1, null, r); }
     var trackPf = [[-25,0],[100,0],[112,8],[112,20],[100,28],[-25,28],[-37,20],[-37,8]];
+    var trPts = roundPf(trackPf, 9), trLen = [0], trL, trN;
+    trPts.forEach(function (q, n) { var w = trPts[(n + 1) % trPts.length]; trLen.push(trLen[n] + Math.hypot(w[0] - q[0], w[1] - q[1])); });
+    trL = trLen[trLen.length - 1]; trN = Math.round(trL / 11);
     prism(machine, trackPf, -75, -55, null, 9); prism(machine, trackPf, -25, -5, null, 9);                       // crawler tracks, rounded ends
     prism(machine, [[-30,28],[112,28],[119,52],[-30,52]], -72, -8);                            // lower body, sloped tail
     rbox(machine, -30, 42, 52, 112, -70, -10, 8);                                                  // engine / bin with CH mark
@@ -140,7 +143,7 @@
       var a = Math.atan(pct / 100), ca = Math.cos(a), sa = Math.sin(a), psi = t * Math.PI / 2, cy = Math.cos(psi), sy = Math.sin(psi),
           phi = (5 + 7 * t) * Math.PI / 180, cp = Math.cos(phi), sp = Math.sin(phi);
       var S = Math.min(h / 560, w / 430), CX = w * 0.5 - (w > 900 ? w * 0.04 * (1 - t) : 0), CY = h * 0.5;
-      var off = (ts / 1000 * 34) % 80, toff = 11 - (ts / 1000 * 34) % 11;   // tread: bottom run rests on the ground, top run runs forward
+      var off = (ts / 1000 * 34) % 80, toff = 0;
       function P(x, y, z, lvl) {
         y += (lvl || 0) * H * hh;
         var x1 = x * ca - y * sa, y1 = x * sa + y * ca - 55;
@@ -198,11 +201,22 @@
       });
       // machine + moving track tread
       machine.forEach(function (pr) { add(pr, 0, 0, 0, 1); });
-      var ta = 1 - ramp(t, 0, 0.18);
-      if (ta > 0.02) for (j = 0; j < 12; j++) {
-        var tx = -25 + j * 11 + toff, bx = 100 - (j * 11 + toff); if (tx > 100) continue;
-        add({ t: "l", p: [[tx,22,-4.6],[tx,28,-4.6]], lw: 1.2, bias: 22 }, 0, 0, 0, ta);
-        add({ t: "l", p: [[bx,0,-4.6],[bx,6,-4.6]], lw: 1.2, bias: 22 }, 0, 0, 0, ta);
+      // cleats run round the track outline: across the tread, plus short marks on the valley-side face
+      var facing = function (nx, ny, nz) {
+        var x1 = nx * ca - ny * sa, y1 = nx * sa + ny * ca, z2 = -x1 * sy + nz * cy;
+        return y1 * sp + z2 * cp > 0.03;
+      };
+      var sideOn = facing(0, 0, 1), run = ts / 1000 * 34;
+      for (j = 0; j < trN; j++) {
+        var sdist = (j * trL / trN + run) % trL, e = 0;
+        while (e < trLen.length - 1 && trLen[e + 1] <= sdist) e++;
+        var A = trPts[e], B = trPts[(e + 1) % trPts.length], sl = trLen[e + 1] - trLen[e], u = (sdist - trLen[e]) / sl,
+            px = A[0] + (B[0] - A[0]) * u, py = A[1] + (B[1] - A[1]) * u, nx = (B[1] - A[1]) / sl, ny = -(B[0] - A[0]) / sl;
+        if (sideOn) add({ t: "l", p: [[px, py, -4.6], [px - nx * 6, py - ny * 6, -4.6]], lw: 1.2, bias: 2 }, 0, 0, 0, 1);
+        if (facing(nx, ny, 0) && !(ny > 0.9 && px > -30)) {
+          add({ t: "l", p: [[px + nx * 0.4, py + ny * 0.4, -25], [px + nx * 0.4, py + ny * 0.4, -5]], lw: 1.2, bias: 2 }, 0, 0, 0, 1);
+          add({ t: "l", p: [[px + nx * 0.4, py + ny * 0.4, -75], [px + nx * 0.4, py + ny * 0.4, -55]], lw: 1.2, bias: 2 }, 0, 0, 0, 1);
+        }
       }
       draw(prims); g.globalAlpha = 1;
       // readout
