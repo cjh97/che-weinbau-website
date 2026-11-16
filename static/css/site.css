@@ -286,6 +286,7 @@ a.card:hover .card-media img { transform: scale(1.04); }
 .hero-figures::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(0deg, rgba(10,12,14,.75) 0%, rgba(10,12,14,.3) 22%, rgba(10,12,14,0) 40%); }
 .figures-bar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding-bottom: clamp(32px, 5vh, 56px); color: #fff; }
 .figures-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; border-top: 1px solid rgba(255,255,255,.3); padding-top: 24px; }
+.figure { text-align: center; }
 .figure strong { display: block; font-size: clamp(2rem, 3.4vw, 3.1rem); font-weight: 300; line-height: 1.05; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: #fff; }
 .figure span { display: block; margin-top: 6px; font-size: .86rem; color: rgba(255,255,255,.8); }
 @media (max-width: 900px) {
