@@ -277,8 +277,12 @@ def section(title, inner, *, grey=False, link=None):
 MAPS = {"eu": ("tools/map_eu.txt", -12, 56), "ca": ("tools/map_us.txt", -126, 43), "il": ("tools/map_il.txt", 31, 35)}  # grid file, lon0, lat0 (0.5° grid)
 
 
-def _map_svg(ctx, which):
-    """Inline SVG: muted dot geography, accent markers, thin leader lines to labels."""
+OUTLINES = json.loads((ROOT / "tools/map_outlines.json").read_text())   # Natural Earth 1:50m, see tools/make_outlines.py
+
+
+def _map_svg(ctx, which, labels=True):
+    """Inline SVG dot map. Markers carry their position (svg units) and country so the page script can
+    zoom into one country; labels are drawn only in the zoomed view."""
     fn, lon0, lat0 = MAPS[which]
     rows = (ROOT / fn).read_text().strip().split("|")
     grid = ["".join(("1" if m[0] == "#" else "0") * int(m[1:]) for m in re.findall(r"[#.]\d+", r)) for r in rows]
@@ -290,15 +294,14 @@ def _map_svg(ctx, which):
             continue
         x = (loc["lon"] - lon0) / 0.5 * 10 + 5
         y = (lat0 - loc["lat"]) / 0.5 * 10 + 5
-        lx, ly = loc["lx"], loc["ly"]
         label = e(t(loc["label"], ctx.lang))
-        anchor = loc.get("anchor") or ("end" if lx < x - 20 else ("start" if lx > x + 20 else "middle"))
-        story = " has-story" if loc.get("story") else ""
-        tag = f' role="button" tabindex="0" aria-label="{label}"' if story else ""
-        marks += (f'<g class="mk{story}{" mk-home" if loc.get("home") else ""}" data-loc="{i}"{tag}><title>{label}</title>'
-                  f'<circle class="mk-hit" cx="{x:.0f}" cy="{y:.0f}" r="22"/><circle class="mk-dot" cx="{x:.0f}" cy="{y:.0f}" r="{8 if loc.get("home") else 6.5}"/></g>')
-    return (f'<svg class="map-svg map-{which}" viewBox="0 0 {W} {H}" role="img" aria-label="{e(t(C.HOME["map_title"], ctx.lang))}">'
-            f'<path class="geo" d="{dots}"/>{marks}</svg>')
+        cls = "mk" + (" has-story" if loc.get("story") else "") + (" mk-home" if loc.get("home") else "")
+        text = f'<text class="mk-label" x="{x:.1f}" y="{y:.1f}" data-side="{loc.get("side", "right")}">{label}</text>' if labels else ""
+        marks += (f'<g class="{cls}" data-loc="{i}" data-c="{loc["country"]}" data-x="{x:.1f}" data-y="{y:.1f}"><title>{label}</title>'
+                  f'<circle class="mk-hit" cx="{x:.1f}" cy="{y:.1f}" r="22"/><circle class="mk-dot" cx="{x:.1f}" cy="{y:.1f}" r="6"/>{text}</g>')
+    outl = ("<g class=\"outl\">" + "".join(f'<path class="ol" data-c="{c}" d="{d}"/>' for c, d in OUTLINES[which].items()) + "</g>") if labels else ""
+    return (f'<svg class="map-svg map-{which}" viewBox="0 0 {W} {H}" data-w="{W}" data-h="{H}" preserveAspectRatio="xMidYMid meet" '
+            f'role="img" aria-label="{e(t(C.HOME["map_title"], ctx.lang))}">{outl}<path class="geo" d="{dots}"/>{marks}</svg>')
 
 
 def _leaf(x, y, rot):
@@ -384,37 +387,34 @@ def world_map(ctx):
         stories += (f'<article class="story{"" if pic else " story-noimg"}" data-story="{i}"{"" if first else " hidden"}>{pic}'
                     f'<div class="story-text"><h3>{e(t(st["title"], lang))}</h3><p>{e(t(st["text"], lang))}</p>{link}</div></article>')
         first = False
-    ca = "Kalifornien, USA" if lang == "de" else "California, USA"
-    il = "Israel"
-    # wine regions, grouped by country; a country-level marker makes the country name itself the entry
-    regions = ""
+    # country list: overview shows the countries; selecting one zooms the map and lists its regions
+    countries = ""
     for code, cname in C.COUNTRIES.items():
-        locs = [(i, l) for i, l in enumerate(C.LOCATIONS) if l.get("country") == code]
+        locs = [(i, l) for i, l in enumerate(C.LOCATIONS) if l["country"] == code]
         if not locs:
             continue
-        name = t(cname, lang)
-        head, items = f"<h3>{e(name)}</h3>", ""
-        for i, l in locs:
-            lab = t(l["label"], lang)
-            cls = "rg" + (" has-story" if l.get("story") else "") + (" rg-home" if l.get("home") else "")
-            if lab == name:
-                head = f'<h3><button class="{cls}" type="button" data-loc="{i}">{e(name)}</button></h3>'
-            else:
-                items += f'<li><button class="{cls}" type="button" data-loc="{i}">{e(lab)}</button></li>'
-        regions += f'<div class="region-group">{head}{f"<ul>{items}</ul>" if items else ""}</div>'
-
-    return f"""<section class="section worldmap">
+        items = "".join(f'<li><button class="rg{" has-story" if l.get("story") else ""}" type="button" data-loc="{i}">{e(t(l["label"], lang))}</button></li>' for i, l in locs)
+        countries += (f'<li class="cg" data-c="{code}"><button class="cg-name" type="button" data-c="{code}" aria-expanded="false">'
+                      f'{e(t(cname, lang))}<span class="cg-n">{len(locs)}</span></button><ul class="cg-regions">{items}</ul></li>')
+    all_label = "Alle Länder" if lang == "de" else "All countries"
+    ca = "Kalifornien, USA" if lang == "de" else "California, USA"
+    return f"""<section class="section worldmap" data-worldmap>
   <div class="wrap">
     <div class="worldmap-head"><h2>{e(t(C.HOME['map_title'], lang))}</h2><p>{e(t(C.HOME['map_text'], lang))}</p></div>
-    <div class="worldmap-grid">
-      <div class="map-side">
-        <div class="regions">{regions}</div>
-        <div class="insets">
-          <figure class="inset">{_map_svg(ctx, 'ca')}<figcaption>{ca}</figcaption></figure>
-          <figure class="inset">{_map_svg(ctx, 'il')}<figcaption>{il}</figcaption></figure>
+    <div class="wm">
+      <div class="wm-side">
+        <ul class="countries">{countries}</ul>
+        <div class="wm-thumbs">
+          <button class="wm-thumb" type="button" data-c="US">{_map_svg(ctx, 'ca', labels=False)}<span>{ca}</span></button>
+          <button class="wm-thumb" type="button" data-c="IL">{_map_svg(ctx, 'il', labels=False)}<span>Israel</span></button>
         </div>
       </div>
-      <div class="map-eu-wrap">{_map_svg(ctx, 'eu')}</div>
+      <div class="wm-stage" data-stage>
+        <div class="wm-layer is-on" data-map="eu">{_map_svg(ctx, 'eu')}</div>
+        <div class="wm-layer" data-map="ca">{_map_svg(ctx, 'ca')}</div>
+        <div class="wm-layer" data-map="il">{_map_svg(ctx, 'il')}</div>
+        <button class="wm-back" type="button" data-all hidden>{all_label}</button>
+      </div>
     </div>
     <div class="stories">{stories}</div>
   </div>

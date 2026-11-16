@@ -313,27 +313,124 @@ var BG = "#17191b", WH = "#ffffff", R = 25, H = 150, D = 2200;
     if (el.getAttribute("data-event-end") < today) el.remove();
   });
 
-  // Map: clicking a marker with a story shows its card
-  var marks = document.querySelectorAll(".worldmap .mk.has-story");
-  function showStory(id) {
-    document.querySelectorAll(".worldmap .story").forEach(function (st) { st.hidden = st.getAttribute("data-story") !== id; });
-    document.querySelectorAll(".worldmap .mk, .worldmap .rg").forEach(function (m) { m.classList.toggle("active", m.getAttribute("data-loc") === id); });
+  // Map: overview of all countries; choosing a country (list, dot or thumbnail) zooms the map to it and labels its regions.
+  var wm = document.querySelector("[data-worldmap]");
+  if (wm) {
+    var stage = wm.querySelector("[data-stage]"), back = wm.querySelector("[data-all]");
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var layers = {}, cur = null, anim = 0;
+    wm.querySelectorAll(".wm-layer").forEach(function (l) { layers[l.getAttribute("data-map")] = l; });
+    var homeOf = {};
+    wm.querySelectorAll(".wm-stage .mk").forEach(function (m) { homeOf[m.getAttribute("data-c")] = m.closest(".wm-layer").getAttribute("data-map"); });
+
+    function showStory(id) {
+      wm.querySelectorAll(".story").forEach(function (st) { st.hidden = st.getAttribute("data-story") !== id; });
+      wm.querySelectorAll(".mk, .rg").forEach(function (m) { m.classList.toggle("active", m.getAttribute("data-loc") === id); });
+    }
+    // keep dots, labels and map dots a steady size on screen whatever the zoom
+    function sizeLabels(svg, vb) {
+      var px = vb[2] / (svg.clientWidth || 1), small = window.innerWidth < 600;
+      var z = vb[2] / svg.getAttribute("data-w");                  // 1 = whole map, smaller = zoomed in
+      svg.querySelector(".geo").style.strokeWidth = (Math.min(5, (small ? 3 : 5.2) * px * Math.pow(1 / z, 0.3))).toFixed(2);
+      svg.querySelectorAll(".mk").forEach(function (m) {
+        var x = +m.getAttribute("data-x"), y = +m.getAttribute("data-y"), on = m.classList.contains("in-view");
+        var r = (on ? (small ? 6 : 7) : (small ? 4.5 : 5.5)) * px;
+        m.querySelector(".mk-dot").style.r = r.toFixed(2) + "px";             // inline style: beats the stylesheet's r
+        m.querySelector(".mk-hit").style.r = (18 * px).toFixed(2) + "px";
+        var tx = m.querySelector(".mk-label");
+        if (tx) {
+          var fs = (small ? 12.5 : 14.5) * px, left = tx.getAttribute("data-side") === "left";
+          tx.style.fontSize = fs.toFixed(2) + "px";
+          tx.setAttribute("x", (x + (left ? -1 : 1) * (r + 6 * px)).toFixed(2));
+          tx.setAttribute("y", (y + fs * 0.35).toFixed(2));
+          tx.setAttribute("text-anchor", left ? "end" : "start");
+          tx.style.strokeWidth = (4 * px).toFixed(2) + "px";
+          // a label that would run out of the frame goes to the other side of its dot
+          if (on && tx.getComputedTextLength) {
+            var len = tx.getComputedTextLength(), gap = r + 6 * px, edge = 6 * px;
+            var outR = x + gap + len > vb[0] + vb[2] - edge, outL = x - gap - len < vb[0] + edge;
+            if ((!left && outR && !outL) || (left && outL && !outR)) {
+              left = !left;
+              tx.setAttribute("x", (x + (left ? -1 : 1) * gap).toFixed(2));
+              tx.setAttribute("text-anchor", left ? "end" : "start");
+            }
+          }
+        }
+      });
+    }
+    function setVB(svg, to, ms) {
+      var from = (svg.getAttribute("viewBox") || "").split(" ").map(Number), t0 = performance.now(), id = ++anim;
+      var step = function (now) {
+        if (id !== anim) return;
+        var k = ms ? Math.min(1, (now - t0) / ms) : 1, e2 = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+        var vb = from.map(function (f, n) { return f + (to[n] - f) * e2; });
+        svg.setAttribute("viewBox", vb.join(" ")); sizeLabels(svg, vb);
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+    function fullVB(svg) { return [0, 0, +svg.getAttribute("data-w"), +svg.getAttribute("data-h")]; }
+    function countryVB(svg, code) {
+      var xs = [], ys = [];
+      svg.querySelectorAll('.mk[data-c="' + code + '"]').forEach(function (m) { xs.push(+m.getAttribute("data-x")); ys.push(+m.getAttribute("data-y")); });
+      var x0 = Math.min.apply(0, xs), x1 = Math.max.apply(0, xs), y0 = Math.min.apply(0, ys), y1 = Math.max.apply(0, ys);
+      var aspect = stage.clientWidth / Math.max(1, stage.clientHeight);
+      var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, w = x1 - x0 + 150, h = y1 - y0 + 80;
+      // frame the whole country outline (padded), but never wider than ~13° so a large country stays on its regions
+      var ol = svg.querySelector('.ol[data-c="' + code + '"]');
+      if (ol) {
+        var bb = ol.getBBox();
+        if (bb.width < 300 && bb.height < 220) { cx = bb.x + bb.width / 2; cy = bb.y + bb.height / 2; w = Math.max(w, bb.width + 40); h = Math.max(h, bb.height + 40); }
+      }
+      w = Math.max(w, 110); h = Math.max(h, w / aspect); w = Math.max(w, h * aspect);
+      return [cx - w / 2, cy - h / 2, w, h];
+    }
+    function select(code) {
+      cur = code;
+      var mapId = code ? homeOf[code] : "eu";
+      Object.keys(layers).forEach(function (k) { layers[k].classList.toggle("is-on", k === mapId); });
+      wm.classList.toggle("is-zoomed", !!code);
+      back.hidden = !code;
+      wm.querySelectorAll(".cg").forEach(function (g) {
+        var on = g.getAttribute("data-c") === code;
+        g.classList.toggle("is-open", on); g.querySelector(".cg-name").setAttribute("aria-expanded", on ? "true" : "false");
+      });
+      wm.querySelectorAll(".wm-thumb").forEach(function (b) { b.classList.toggle("active", b.getAttribute("data-c") === code); });
+      Object.keys(layers).forEach(function (k) {
+        var svg = layers[k].querySelector("svg");
+        svg.querySelectorAll(".mk").forEach(function (m) { m.classList.toggle("in-view", !!code && m.getAttribute("data-c") === code); });
+        svg.querySelectorAll(".ol").forEach(function (o) { o.classList.toggle("sel", o.getAttribute("data-c") === code); });
+        var target = (code && k === mapId) ? countryVB(svg, code) : fullVB(svg);
+        if (k === mapId) setVB(svg, target, reduce ? 0 : 650); else { svg.setAttribute("viewBox", fullVB(svg).join(" ")); sizeLabels(svg, fullVB(svg)); }
+      });
+      // a country with exactly one story opens it
+      var withStory = wm.querySelectorAll('.wm-stage .mk.has-story[data-c="' + code + '"]');
+      if (withStory.length) showStory(withStory[0].getAttribute("data-loc"));
+    }
+    wm.querySelectorAll(".cg-name, .wm-thumb").forEach(function (b) {
+      b.addEventListener("click", function () { var c = b.getAttribute("data-c"); select(cur === c && b.classList.contains("cg-name") ? null : c); });
+    });
+    back.addEventListener("click", function () { select(null); });
+    wm.querySelectorAll(".wm-stage .mk").forEach(function (m) {
+      m.addEventListener("click", function () {
+        var c = m.getAttribute("data-c");
+        if (cur !== c) select(c); else if (m.classList.contains("has-story")) showStory(m.getAttribute("data-loc"));
+      });
+    });
+    wm.querySelectorAll(".rg").forEach(function (b) {
+      var id = b.getAttribute("data-loc");
+      var hl = function (on) { wm.querySelectorAll('.wm-stage .mk[data-loc="' + id + '"]').forEach(function (x) { x.classList.toggle("hl", on); }); };
+      b.addEventListener("mouseenter", function () { hl(true); }); b.addEventListener("mouseleave", function () { hl(false); });
+      b.addEventListener("focus", function () { hl(true); }); b.addEventListener("blur", function () { hl(false); });
+      if (b.classList.contains("has-story")) b.addEventListener("click", function () { showStory(id); });
+    });
+    window.addEventListener("resize", function () {
+      Object.keys(layers).forEach(function (k) { var svg = layers[k].querySelector("svg"); sizeLabels(svg, svg.getAttribute("viewBox").split(" ").map(Number)); });
+    });
+    select(null);
+    var home = wm.querySelector(".wm-stage .mk-home.has-story");
+    if (home) showStory(home.getAttribute("data-loc"));
   }
-  marks.forEach(function (m) {
-    var id = m.getAttribute("data-loc");
-    m.addEventListener("click", function () { showStory(id); });
-    m.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); showStory(id); } });
-  });
-  // region list <-> map markers: hovering either highlights both; entries with a story open it
-  document.querySelectorAll(".worldmap [data-loc]").forEach(function (el) {
-    var id = el.getAttribute("data-loc");
-    var hl = function (on) { document.querySelectorAll('.worldmap [data-loc="' + id + '"]').forEach(function (x) { x.classList.toggle("hl", on); }); };
-    el.addEventListener("mouseenter", function () { hl(true); }); el.addEventListener("mouseleave", function () { hl(false); });
-    el.addEventListener("focus", function () { hl(true); }); el.addEventListener("blur", function () { hl(false); });
-    if (el.classList.contains("rg") && el.classList.contains("has-story")) el.addEventListener("click", function () { showStory(id); });
-  });
-  var home = document.querySelector(".worldmap .mk-home.has-story") || marks[0];
-  if (home) showStory(home.getAttribute("data-loc"));
 
   // Lightbox for galleries
   var lb = document.querySelector("[data-lightbox]");
