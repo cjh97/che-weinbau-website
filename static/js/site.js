@@ -345,17 +345,40 @@ var BG = "#17191b", WH = "#ffffff", R = 25, H = 150, D = 2200;
           tx.setAttribute("y", (y + fs * 0.35).toFixed(2));
           tx.setAttribute("text-anchor", left ? "end" : "start");
           tx.style.strokeWidth = (4 * px).toFixed(2) + "px";
-          // a label that would run out of the frame goes to the other side of its dot
-          if (on && tx.getComputedTextLength) {
-            var len = tx.getComputedTextLength(), gap = r + 6 * px, edge = 6 * px;
-            var outR = x + gap + len > vb[0] + vb[2] - edge, outL = x - gap - len < vb[0] + edge;
-            if ((!left && outR && !outL) || (left && outL && !outR)) {
-              left = !left;
-              tx.setAttribute("x", (x + (left ? -1 : 1) * gap).toFixed(2));
-              tx.setAttribute("text-anchor", left ? "end" : "start");
-            }
-          }
         }
+      });
+    }
+    // put each visible label where it overlaps no other label, no dot and stays inside the frame
+    function placeLabels(svg, vb, px) {
+      var ms = Array.prototype.slice.call(svg.querySelectorAll(".mk.in-view"));
+      if (!ms.length) return;
+      ms.sort(function (a, b) { return a.getAttribute("data-y") - b.getAttribute("data-y"); });
+      var dots = ms.map(function (m) { var x = +m.getAttribute("data-x"), y = +m.getAttribute("data-y"), r = 8 * px; return { x: x - r, y: y - r, w: 2 * r, h: 2 * r }; });
+      var hit = function (a, b) { return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; };
+      var placed = [], pad = 3 * px, ex0 = vb[0] + 4 * px, ex1 = vb[0] + vb[2] - 4 * px, ey0 = vb[1] + 4 * px, ey1 = vb[1] + vb[3] - 4 * px;
+      ms.forEach(function (m, n) {
+        var tx = m.querySelector(".mk-label"); if (!tx) return;
+        var x = +m.getAttribute("data-x"), y = +m.getAttribute("data-y"), fs = parseFloat(tx.style.fontSize), gap = 11 * px;
+        var pref = tx.getAttribute("data-side") === "left" ? -1 : 1;
+        var cands = [[pref, 0], [-pref, 0], [pref, -1], [pref, 1], [-pref, -1], [-pref, 1], [0, -1.6], [0, 1.6]];
+        var best = null;
+        for (var k = 0; k < cands.length; k++) {
+          var sx = cands[k][0], sy = cands[k][1];
+          tx.setAttribute("text-anchor", sx > 0 ? "start" : sx < 0 ? "end" : "middle");
+          tx.setAttribute("x", (x + sx * gap).toFixed(2));
+          tx.setAttribute("y", (y + fs * 0.35 + sy * fs * 0.95).toFixed(2));
+          var bb = tx.getBBox(), box = { x: bb.x - pad, y: bb.y - pad, w: bb.width + 2 * pad, h: bb.height + 2 * pad };
+          var ok = box.x >= ex0 && box.x + box.w <= ex1 && box.y >= ey0 && box.y + box.h <= ey1;
+          for (var q = 0; ok && q < placed.length; q++) if (hit(box, placed[q])) ok = false;
+          for (q = 0; ok && q < dots.length; q++) if (q !== n && hit(box, dots[q])) ok = false;
+          if (ok) { best = { k: k, box: box }; break; }
+          if (!best) best = { k: k, box: box, fallback: true };
+        }
+        if (best.fallback) {                 // nothing free: go back to the first choice
+          tx.setAttribute("text-anchor", pref > 0 ? "start" : "end");
+          tx.setAttribute("x", (x + pref * gap).toFixed(2)); tx.setAttribute("y", (y + fs * 0.35).toFixed(2));
+        }
+        placed.push(best.box);
       });
     }
     function setVB(svg, to, ms) {
@@ -365,7 +388,7 @@ var BG = "#17191b", WH = "#ffffff", R = 25, H = 150, D = 2200;
         var k = ms ? Math.min(1, (now - t0) / ms) : 1, e2 = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
         var vb = from.map(function (f, n) { return f + (to[n] - f) * e2; });
         svg.setAttribute("viewBox", vb.join(" ")); sizeLabels(svg, vb);
-        if (k < 1) requestAnimationFrame(step);
+        if (k < 1) requestAnimationFrame(step); else placeLabels(svg, vb, vb[2] / (svg.clientWidth || 1));
       };
       requestAnimationFrame(step);
     }
@@ -378,11 +401,13 @@ var BG = "#17191b", WH = "#ffffff", R = 25, H = 150, D = 2200;
       var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, w = x1 - x0 + 150, h = y1 - y0 + 80;
       // frame the whole country outline (padded), but never wider than ~13° so a large country stays on its regions
       var ol = svg.querySelector('.ol[data-c="' + code + '"]');
-      if (ol) {
+      var narrow = stage.clientWidth < 600;
+      if (narrow) { w = x1 - x0 + 110; h = y1 - y0 + 60; }
+      if (ol && !narrow) {
         var bb = ol.getBBox();
         if (bb.width < 300 && bb.height < 220) { cx = bb.x + bb.width / 2; cy = bb.y + bb.height / 2; w = Math.max(w, bb.width + 40); h = Math.max(h, bb.height + 40); }
       }
-      w = Math.max(w, 110); h = Math.max(h, w / aspect); w = Math.max(w, h * aspect);
+      w = Math.max(w, narrow ? 90 : 110); h = Math.max(h, w / aspect); w = Math.max(w, h * aspect);
       return [cx - w / 2, cy - h / 2, w, h];
     }
     function select(code) {
@@ -425,7 +450,7 @@ var BG = "#17191b", WH = "#ffffff", R = 25, H = 150, D = 2200;
       if (b.classList.contains("has-story")) b.addEventListener("click", function () { showStory(id); });
     });
     window.addEventListener("resize", function () {
-      Object.keys(layers).forEach(function (k) { var svg = layers[k].querySelector("svg"); sizeLabels(svg, svg.getAttribute("viewBox").split(" ").map(Number)); });
+      Object.keys(layers).forEach(function (k) { var svg = layers[k].querySelector("svg"), vb = svg.getAttribute("viewBox").split(" ").map(Number); sizeLabels(svg, vb); placeLabels(svg, vb, vb[2] / (svg.clientWidth || 1)); });
     });
     select(null);
     var home = wm.querySelector(".wm-stage .mk-home.has-story");
