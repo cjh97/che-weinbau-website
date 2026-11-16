@@ -284,12 +284,13 @@ LOCATIONS = [
                "title": {"de": "Douro – Terrassen in Portugal", "en": "Douro – terraces in Portugal"},
                "text": {"de": "2019 erntete der Vollernter in den steilen, über Generationen gebauten Terrassen des Douro-Tals.",
                         "en": "In 2019 the harvester worked the steep, centuries-old terraces of the Douro Valley."}}},
-    {"map": "ca", "lon": -122.45, "lat": 38.29, "lx": 110, "ly": 70, "country": "US", "label": {"de": "Sonoma", "en": "Sonoma"},
+    {"map": "ca", "lon": -122.8, "lat": 38.3, "lx": 110, "ly": 70, "country": "US", "label": {"de": "Sonoma", "en": "Sonoma"},
      "story": {"img": None,
                "title": {"de": "Sonoma – erster Einsatz in Nordamerika", "en": "Sonoma – first in North America"},
                "text": {"de": "2022 setzte das Weingut Gundlach Bundschu im Sonoma Valley als erstes in den USA einen Steillagen-Vollernter ein.",
                         "en": "In 2022, Gundlach Bundschu in Sonoma Valley became the first US winery to use a steep slope harvester."},
                "link": "https://www.winebusiness.com/news/article/264252"}},
+    {"map": "ca", "lon": -122.0, "lat": 38.45, "lx": 0, "ly": 0, "country": "US", "label": {"de": "Napa", "en": "Napa"}},
 ]
 
 # ---------------------------------------------------------------- MSH page

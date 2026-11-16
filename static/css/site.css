@@ -605,3 +605,4 @@ a.card:hover .card-media img { transform: scale(1.04); }
 .region-group > ul:first-child { padding-top: 12px; border-top: 1px solid var(--line); }
 .regions { columns: 3; }
 @media (max-width: 1200px) { .regions { columns: 2; } }
+.map-ca .mk-dot { r: 7; } .map-ca .mk.hl .mk-dot, .map-ca .mk.active .mk-dot { r: 10; }
