@@ -560,3 +560,17 @@ a.card:hover .card-media img { transform: scale(1.04); }
 .slope-sticky .slope-photo-text h2 { color: #fff; font-size: clamp(2.2rem, 5vw, 4.4rem); max-width: 12em; margin: 0; }
 .slope-story.is-static .slope-photo { --ph: 1; --pt: 1; position: relative; height: 70vh; }
 .expand .benefits { margin-top: 0; padding-top: clamp(56px, 7vw, 104px); }
+
+/* map: two insets (California, Israel), smaller dots in the dense German cluster */
+.insets { display: grid; gap: 16px; }
+.map-il .mk text { font-size: 13px; stroke-width: 4px; }
+.map-il .mk-dot { r: 5; stroke-width: 1.5; } .map-il .mk line { stroke-width: .8; }
+.map-il .geo { stroke-width: 3.5; }
+.map-eu .mk-dot { r: 5.5; } .map-eu .mk-home .mk-dot { r: 7; }
+@media (max-width: 900px) {
+  .insets { grid-template-columns: 1fr 1fr; }
+  .inset { width: auto; }
+  .map-il .mk text { font-size: 16px; }
+  .map-eu .mk text { font-size: 19px; stroke-width: 6px; }
+  .map-eu .mk-dot { r: 7; } .map-eu .mk-home .mk-dot { r: 8.5; }
+}

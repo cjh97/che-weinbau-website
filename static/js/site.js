@@ -85,37 +85,32 @@ var BG = "#17191b", WH = "#ffffff", R = 25, H = 150, D = 2200;
     trPts.forEach(function (q, n) { var w = trPts[(n + 1) % trPts.length]; trLen.push(trLen[n] + Math.hypot(w[0] - q[0], w[1] - q[1])); });
     trL = trLen[trLen.length - 1]; trN = Math.round(trL / 11);
     prism(machine, trackPf, -75, -55, null, 9); prism(machine, trackPf, -25, -5, null, 9);                       // crawler tracks, rounded ends
-    prism(machine, [[-30,28],[112,28],[119,52],[-30,52]], -72, -8);                            // lower body, sloped tail
-    rbox(machine, -30, 42, 52, 112, -70, -10, 8);                                                  // engine / bin with CH mark
-    rbox(machine, -22, 30, 112, 126, -58, -22, 6);                                                 // cover on top
-    var cabPf = [[48,52],[110,52],[115,84],[98,130],[58,130],[48,116]];
-    prism(machine, cabPf, -68, -12, null, 9);                                                           // cab with raked glass
-    rbox(machine, 56, 99, 130, 135, -70, -10, 2.5);                                                  // roof
-    box(machine, 42, 46, 104, 152, -22, -18);                                                  // exhaust
-    box(machine, -48, -30, 2, 118, -16, 2);                                                    // conveyor column
-    var headPf = [[-142,4],[-48,4],[-48,124],[-104,124],[-142,36]];
-    prism(machine, headPf, R - 30, R - 13, null, 14); prism(machine, headPf, R + 13, R + 30, null, 14);            // harvesting head, raked front
-    rbox(machine, -104, -48, 124, 140, R - 32, R + 32, 6);                                         // bridge over the row
-    rbox(machine, -98, -58, 140, 150, R - 18, R + 18, 5);                                          // head cover
-    machine.push({ t: "f", p: roundPf([[58,74],[107,74],[110,84],[96,123],[61,123],[58,112]], 6).map(function (q) { return [q[0], q[1], -11.5]; }), fill: "#2e3033", stroke: WH, bias: 20, glass: 1 });
-    machine.push({ t: "f", p: [[-142,6,R-13],[-48,6,R-13],[-48,0,R-2],[-142,0,R-2]], fill: "#6b4a3a", stroke: WH });
-    machine.push({ t: "f", p: [[-142,6,R+13],[-48,6,R+13],[-48,0,R+2],[-142,0,R+2]], fill: "#6b4a3a", stroke: WH });
-    var i, k, arc = [];
-    for (i = 0; i <= 14; i++) { k = (40 + i * 20) * Math.PI / 180; arc.push([4 + 14 * Math.cos(k), 80 + 14 * Math.sin(k), -9.5]); }
-    // CH mark, traced from the company logo (C and H as filled shapes on the engine housing)
-    LOGO.forEach(function (pf) { machine.push({ t: "f", p: pf.map(function (q) { return [q[0], q[1], -9.5]; }), fill: WH, stroke: WH, lw: 0.5, bias: 25 }); });
-    for (i = 0; i < 4; i++) machine.push({ t: "l", p: [[-28 + i * 0, 33 + i * 5, -7.5], [108 + i * 1.4, 33 + i * 5, -7.5]], lw: 1, bias: 25, col: "rgba(255,255,255,.5)" });
+    // silhouette after the MSH side drawing: cab with raked front, engine section, column, tall harvesting head
+    var bodyPf = [[151,151],[78,151],[52,85],[45,85],[45,107],[-8,107],[-8,23],[100,23],[118,16],[159,59],[159,77],[144,90],[159,140]];
+    prism(machine, bodyPf, -72, -8, null, 7);                                                      // body and cab, one piece
+    box(machine, 36, 40, 107, 150, -20, -16);                                                      // exhaust
+    box(machine, -34, -9, 40, 114, -14, -2);                                                       // conveyor column
+    machine.push({ t: "l", p: [[-15,44,-1.9],[-15,110,-1.9]], lw: 1.2, bias: 25 }, { t: "l", p: [[-22,44,-1.9],[-22,110,-1.9]], lw: 1.2, bias: 25 });
+    var headPf = [[-135,26],[-126,18],[-35,18],[-35,124],[-135,124]];
+    prism(machine, headPf, R - 30, R - 13, null, 8); prism(machine, headPf, R + 13, R + 30, null, 8);  // harvesting head, either side of the row
+    prism(machine, [[-135,124],[-35,124],[-35,126],[-14,126],[-3,119],[-3,114],[26,114],[26,154],[-135,154]], R - 32, R + 32, null, 6);  // head top, reaching over the column
+    machine.push({ t: "f", p: roundPf([[66,96],[150,96],[150,138],[145,143],[84,143]], 6).map(function (q) { return [q[0], q[1], -7.5]; }), fill: "#2e3033", stroke: WH, bias: 20, glass: 1 });
+    machine.push({ t: "f", p: [[-126,18,R-13],[-35,18,R-13],[-35,12,R-2],[-126,12,R-2]], fill: "#6b4a3a", stroke: WH });
+    machine.push({ t: "f", p: [[-126,18,R+13],[-35,18,R+13],[-35,12,R+2],[-126,12,R+2]], fill: "#6b4a3a", stroke: WH });
+    var i, k;
+    // CH mark, traced from the company logo (C and H as filled shapes on the engine section)
+    LOGO.forEach(function (pf) { machine.push({ t: "f", p: pf.map(function (q) { return [q[0] + 12, q[1] - 10, -7.5]; }), fill: WH, stroke: WH, lw: 0.5, bias: 25 }); });
     for (i = 0; i < 3; i++) {                                                                  // hoses down the outside of the head
       var hs = [];
-      for (k = 0; k <= 10; k++) hs.push([-66 - i * 9 - 34 * Math.pow(k / 10, 1.6), 140 - 112 * (k / 10), R + 31 + 5 * Math.sin(Math.PI * k / 10)]);
+      for (k = 0; k <= 10; k++) hs.push([-66 - i * 9 - 34 * Math.pow(k / 10, 1.6), 150 - 118 * (k / 10), R + 31 + 5 * Math.sin(Math.PI * k / 10)]);
       machine.push({ t: "l", p: hs, lw: 3.5, bias: 28 });
     }
     for (i = 0; i < 5; i++) {
-      machine.push({ t: "l", p: [[-118, 104 - i * 20, R - 13], [-118, 99 - i * 20, R - 7], [-118, 101 - i * 20, R - 2]], lw: 1.4 });
-      machine.push({ t: "l", p: [[-118, 94 - i * 20, R + 13], [-118, 89 - i * 20, R + 7], [-118, 91 - i * 20, R + 2]], lw: 1.4 });
+      machine.push({ t: "l", p: [[-118, 110 - i * 20, R - 13], [-118, 105 - i * 20, R - 7], [-118, 107 - i * 20, R - 2]], lw: 1.4 });
+      machine.push({ t: "l", p: [[-118, 100 - i * 20, R + 13], [-118, 95 - i * 20, R + 7], [-118, 97 - i * 20, R + 2]], lw: 1.4 });
     }
     var hose = [];
-    for (i = 0; i <= 16; i++) { k = i / 16; hose.push([-80 + 84 * k, 150 + 40 * Math.sin(Math.PI * k) - 24 * k, R - (R + 40) * k]); }
+    for (i = 0; i <= 16; i++) { k = i / 16; hose.push([-90 + 110 * k, 154 + 40 * Math.sin(Math.PI * k) - 47 * k, R - (R + 40) * k]); }
     machine.push({ t: "l", p: hose, lw: 4.5, bias: 10 });
     machine.push({ t: "c", p: [[-18, 14, -4.5]], r: 9, stroke: WH, bias: 25 }, { t: "c", p: [[94, 14, -4.5]], r: 9, stroke: WH, bias: 25 });
 

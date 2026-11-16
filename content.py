@@ -208,10 +208,10 @@ HOME = {
     },
     "short_link": {"de": "Zum Steillagen-Vollernter", "en": "Discover the harvester"},
     "benefits_title": {"de": "Traubenqualität auf Handlese-Niveau.", "en": "Hand-picked quality, mechanized."},
-    "map_title": {"de": "In Europas Steillagen. Und in Kalifornien.", "en": "Across Europe's steep slopes. And in California."},
+    "map_title": {"de": "In Europas Steillagen. Und weit darüber hinaus.", "en": "Across Europe's steep slopes. And far beyond."},
     "map_text": {
-        "de": "Von der Mosel bis an den Douro – und bis ins Sonoma Valley. Wählen Sie einen Ort, um mehr zu erfahren.",
-        "en": "From the Mosel to the Douro – and on to Sonoma Valley. Select a location to learn more.",
+        "de": "Von der Mosel bis an den Douro – und bis nach Kalifornien und Israel. Wählen Sie einen Ort, um mehr zu erfahren.",
+        "en": "From the Mosel to the Douro – and on to California and Israel. Select a location to learn more.",
     },
     "products": [
         {"page": "msh", "img": "msh-mechanical.jpg",
@@ -242,19 +242,27 @@ HOME = {
 # ---------------------------------------------------------------- world map
 # Regions where machines are in use. lon/lat in degrees. Add or remove entries freely.
 LOCATIONS = [
-    # map: "eu" (Europe, lon -12..22, lat 56..35) or "ca" (California inset, lon -126..-114, lat 43..32)
+    # map: "eu" (Europe, lon -12..22, lat 56..35), "ca" (California inset, lon -126..-114, lat 43..32) or "il" (Israel inset, lon 31..38, lat 35..29)
     # lx/ly: label position in map units (10 units = 0.5°); "story": shown when the marker is clicked
-    {"map": "eu", "lon": 7.1, "lat": 49.98, "lx": 300, "ly": 80, "label": {"de": "Mosel", "en": "Mosel"}, "home": True,
+    {"map": "eu", "lon": 7.1, "lat": 49.98, "lx": 350, "ly": 99, "label": {"de": "Mosel", "en": "Mosel"}, "home": True,
      "story": {"img": "msh-mosel.jpg",
                "title": {"de": "Mosel – hier hat alles begonnen", "en": "Mosel – where it all began"},
                "text": {"de": "In Kröv entwickelt, in Wintrich gebaut: An der Mosel hat der Steillagen-Vollernter seinen Ursprung. Bis 2022 waren bereits 25 Maschinen in Deutschland im Einsatz.",
                         "en": "Developed in Kröv, built in Wintrich: the steep slope harvester was born on the Mosel. By 2022, 25 machines were already at work in Germany."}}},
-    {"map": "eu", "lon": 9.9, "lat": 49.9, "lx": 470, "ly": 75, "label": {"de": "Franken", "en": "Franconia"},
+    {"map": "eu", "lon": 9.9, "lat": 49.9, "lx": 478, "ly": 96, "label": {"de": "Franken", "en": "Franconia"},
      "story": {"img": "news-br.jpg",
                "title": {"de": "Franken – Lese ohne Saisonkräfte", "en": "Franconia – harvesting without seasonal labour"},
                "text": {"de": "Der Bayerische Rundfunk begleitete einen fränkischen Winzer bei Thüngersheim beim Test des Vollernters in einer Lage mit 40 % Hangneigung.",
                         "en": "Bavarian broadcaster BR followed a Franconian winegrower near Thüngersheim testing the harvester on a 40 % slope."}}},
-    {"map": "eu", "lon": 15.4, "lat": 48.4, "lx": 560, "ly": 300, "anchor": "middle", "mx": 600, "label": {"de": "Österreich", "en": "Austria"}},
+    {"map": "eu", "lon": 15.4, "lat": 48.4, "lx": 590, "ly": 226, "anchor": "middle", "label": {"de": "Österreich", "en": "Austria"}},
+    {"map": "eu", "lon": 7.7, "lat": 50.3, "lx": 350, "ly": 63, "label": {"de": "Rhein", "en": "Rhine"}},
+    {"map": "eu", "lon": 7.75, "lat": 49.75, "lx": 350, "ly": 135, "label": {"de": "Nahe", "en": "Nahe"}},
+    {"map": "eu", "lon": 9.25, "lat": 48.85, "lx": 472, "ly": 134, "label": {"de": "Baden-Württemberg", "en": "Baden-Württemberg"}},
+    {"map": "eu", "lon": 8.05, "lat": 48.45, "lx": 478, "ly": 182, "label": {"de": "Ortenau", "en": "Ortenau"}},
+    {"map": "eu", "lon": 7.3, "lat": 48.1, "lx": 350, "ly": 175, "label": {"de": "Elsass", "en": "Alsace"}},
+    {"map": "eu", "lon": 16.6, "lat": 48.9, "lx": 612, "ly": 72, "anchor": "middle", "label": {"de": "Tschechien", "en": "Czechia"}},
+    {"map": "eu", "lon": 16.5, "lat": 43.4, "lx": 600, "ly": 305, "anchor": "middle", "label": {"de": "Kroatien", "en": "Croatia"}},
+    {"map": "il", "lon": 35.0, "lat": 31.8, "lx": 22, "ly": 42, "anchor": "start", "label": {"de": "Israel", "en": "Israel"}},
     {"map": "eu", "lon": 7.3, "lat": 46.3, "lx": 395, "ly": 290, "label": {"de": "Schweiz", "en": "Switzerland"}},
     {"map": "eu", "lon": 4.8, "lat": 45.3, "lx": 225, "ly": 250, "label": {"de": "Frankreich", "en": "France"}},
     {"map": "eu", "lon": 11.3, "lat": 46.5, "lx": 455, "ly": 365, "label": {"de": "Italien", "en": "Italy"}},

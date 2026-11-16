@@ -274,7 +274,7 @@ def section(title, inner, *, grey=False, link=None):
 </section>"""
 
 
-MAPS = {"eu": ("tools/map_eu.txt", -12, 56), "ca": ("tools/map_us.txt", -126, 43)}  # grid file, lon0, lat0 (0.5° grid)
+MAPS = {"eu": ("tools/map_eu.txt", -12, 56), "ca": ("tools/map_us.txt", -126, 43), "il": ("tools/map_il.txt", 31, 35)}  # grid file, lon0, lat0 (0.5° grid)
 
 
 def _map_svg(ctx, which):
@@ -387,11 +387,15 @@ def world_map(ctx):
                     f'<div class="story-text"><h3>{e(t(st["title"], lang))}</h3><p>{e(t(st["text"], lang))}</p>{link}</div></article>')
         first = False
     ca = "Kalifornien, USA" if lang == "de" else "California, USA"
+    il = "Israel" if lang == "de" else "Israel"
     return f"""<section class="section worldmap">
   <div class="wrap">
     <div class="worldmap-head"><h2>{e(t(C.HOME['map_title'], lang))}</h2><p>{e(t(C.HOME['map_text'], lang))}</p></div>
     <div class="worldmap-grid">
-      <figure class="inset">{_map_svg(ctx, 'ca')}<figcaption>{ca}</figcaption></figure>
+      <div class="insets">
+        <figure class="inset">{_map_svg(ctx, 'ca')}<figcaption>{ca}</figcaption></figure>
+        <figure class="inset">{_map_svg(ctx, 'il')}<figcaption>{il}</figcaption></figure>
+      </div>
       <div class="map-eu-wrap">{_map_svg(ctx, 'eu')}</div>
     </div>
     <div class="stories">{stories}</div>
