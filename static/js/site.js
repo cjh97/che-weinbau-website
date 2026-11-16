@@ -137,13 +137,15 @@ var BG = "#17191b", WH = "#ffffff", R = 25, H = 150, D = 2200;
       if (!w || !h) return;
       if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
       g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); g.lineJoin = "round"; g.lineCap = "round";
-      var pct = 75 * (ramp(p, 0.03, 0.27) - ramp(p, 0.33, 0.5)), t = ramp(p, 0.56, 0.8), hh = ramp(p, 0.52, 0.74);
+      // flat → downhill to 75 % → flat → uphill to 50 % → flat → camera swings to the terrace (positive = head lower = downhill)
+      var pct = 75 * (ramp(p, 0.04, 0.2) - ramp(p, 0.25, 0.35)) - 50 * (ramp(p, 0.39, 0.5) - ramp(p, 0.54, 0.63)),
+          t = ramp(p, 0.67, 0.86), hh = ramp(p, 0.64, 0.8);
       var a = Math.atan(pct / 100), ca = Math.cos(a), sa = Math.sin(a), psi = t * Math.PI / 2, cy = Math.cos(psi), sy = Math.sin(psi),
           phi = (5 + 7 * t) * Math.PI / 180, cp = Math.cos(phi), sp = Math.sin(phi);
       var S = Math.min(h / 560, w / 430), CX = w * 0.5 - (w > 900 ? w * 0.04 * (1 - t) : 0), CY = h * 0.5;
       var off = (ts / 1000 * 34) % 80, toff = 0;
       // final approach: the camera settles where the machine stands in the photo (2000 × 1333, object-fit: cover)
-      var q = ramp(p, 0.82, 0.97);
+      var q = ramp(p, 0.87, 0.97);
       if (q > 0) {
         var S0 = S, CX0 = CX, CY0 = CY; S = 1; CX = 0; CY = 0;
         var gb = P(-40, 0, -9, 0), gt = P(-40, 140, -9, 0), isc = Math.max(w / 2000, h / 1333),
@@ -242,7 +244,11 @@ var BG = "#17191b", WH = "#ffffff", R = 25, H = 150, D = 2200;
       draw(prims); g.globalAlpha = 1;
       // readout
       readEl.style.opacity = Math.min(1, Math.abs(2 * t - 1) * 1.6).toFixed(3);
-      if (t < 0.5) { sn.textContent = Math.round(pct) + " %"; sl.textContent = labels[pct < 20 ? 0 : pct < 55 ? 1 : 2]; }
+      if (t < 0.5) {
+        var ap = Math.abs(pct);
+        sn.textContent = Math.round(ap) + " %";
+        sl.textContent = labels[ap < 20 ? 0 : ap < 55 ? 1 : 2] + (ap >= 1 && labels[6] ? " – " + labels[pct > 0 ? 5 : 6] : "");
+      }
       else { sn.textContent = "1"; sl.textContent = labels[3]; }
     }
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
