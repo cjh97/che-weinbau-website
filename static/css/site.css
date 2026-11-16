@@ -698,3 +698,10 @@ a.card:hover .card-media img { transform: scale(1.04); }
 .is-zoomed .wm-stage .mk:not(.in-view) .mk-dot { opacity: .45; fill: #9aa39a; }
 .wm-stage, .wm-layer, .wm-layer .map-svg { overflow: hidden; }
 .wm-layer:not(.is-on) { pointer-events: none; }
+
+/* wide and ultrawide screens: photo boxes grow with the screen width so photos are not cropped to a thin strip */
+@media (min-width: 901px) {
+  .hero { height: min(90vh, max(72vh, 40vw)); max-height: none; }
+  .hero-home, .hero-figures { height: 100vh; max-height: none; }
+  .split { min-height: min(max(620px, 40vw), 92vh); }
+}
