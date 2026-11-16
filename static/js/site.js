@@ -218,8 +218,8 @@
       for (j = 0; j < trN; j++) {
         var sdist = (j * trL / trN + run) % trL, e = 0;
         while (e < trLen.length - 1 && trLen[e + 1] <= sdist) e++;
-        var A = trPts[e], B = trPts[(e + 1) % trPts.length], sl = trLen[e + 1] - trLen[e], u = (sdist - trLen[e]) / sl,
-            px = A[0] + (B[0] - A[0]) * u, py = A[1] + (B[1] - A[1]) * u, nx = (B[1] - A[1]) / sl, ny = -(B[0] - A[0]) / sl;
+        var A = trPts[e], B = trPts[(e + 1) % trPts.length], segL = trLen[e + 1] - trLen[e], u = (sdist - trLen[e]) / segL,
+            px = A[0] + (B[0] - A[0]) * u, py = A[1] + (B[1] - A[1]) * u, nx = (B[1] - A[1]) / segL, ny = -(B[0] - A[0]) / segL;
         if (sideOn) add({ t: "l", p: [[px, py, -4.6], [px - nx * 6, py - ny * 6, -4.6]], lw: 1.2, bias: 2 }, 0, 0, 0, 1);
         if (facing(nx, ny, 0) && !(ny > 0.9 && px > -30)) {
           add({ t: "l", p: [[px + nx * 0.4, py + ny * 0.4, -25], [px + nx * 0.4, py + ny * 0.4, -5]], lw: 1.2, bias: 2 }, 0, 0, 0, 1);
