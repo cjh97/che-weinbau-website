@@ -84,7 +84,9 @@ var BG = "#17191b", WH = "#ffffff", R = 25, H = 150, D = 2200;
     var trPts = roundPf(trackPf, 9), trLen = [0], trL, trN;
     trPts.forEach(function (q, n) { var w = trPts[(n + 1) % trPts.length]; trLen.push(trLen[n] + Math.hypot(w[0] - q[0], w[1] - q[1])); });
     trL = trLen[trLen.length - 1]; trN = Math.round(trL / 11);
-    prism(machine, trackPf, -75, -55, null, 9); prism(machine, trackPf, -25, -5, null, 9);                       // crawler tracks, rounded ends
+    prism(machine, trackPf, -75, -55, null, 9);
+    var nt = machine.length; prism(machine, trackPf, -25, -5, null, 9);
+    for (; nt < machine.length; nt++) machine[nt].bias = 12;                                     // near track sits in front of the body                       // crawler tracks, rounded ends
     // silhouette after the MSH side drawing: cab with raked front, engine section, column, tall harvesting head
     var bodyPf = [[151,151],[78,151],[52,85],[45,85],[45,107],[-8,107],[-8,23],[100,23],[118,16],[159,59],[159,77],[144,90],[159,140]];
     prism(machine, bodyPf, -72, -8, null, 7);                                                      // body and cab, one piece
@@ -231,9 +233,9 @@ var BG = "#17191b", WH = "#ffffff", R = 25, H = 150, D = 2200;
         while (e < trLen.length - 1 && trLen[e + 1] <= sdist) e++;
         var A = trPts[e], B = trPts[(e + 1) % trPts.length], segL = trLen[e + 1] - trLen[e], u = (sdist - trLen[e]) / segL,
             px = A[0] + (B[0] - A[0]) * u, py = A[1] + (B[1] - A[1]) * u, nx = (B[1] - A[1]) / segL, ny = -(B[0] - A[0]) / segL;
-        if (sideOn) add({ t: "l", p: [[px, py, -4.6], [px - nx * 6, py - ny * 6, -4.6]], lw: 1.2, bias: 2 }, 0, 0, 0, 1);
+        if (sideOn) add({ t: "l", p: [[px, py, -4.6], [px - nx * 6, py - ny * 6, -4.6]], lw: 1.2, bias: 16 }, 0, 0, 0, 1);
         if (facing(nx, ny, 0) && !(ny > 0.9 && px > -30)) {
-          add({ t: "l", p: [[px + nx * 0.4, py + ny * 0.4, -25], [px + nx * 0.4, py + ny * 0.4, -5]], lw: 1.2, bias: 2 }, 0, 0, 0, 1);
+          add({ t: "l", p: [[px + nx * 0.4, py + ny * 0.4, -25], [px + nx * 0.4, py + ny * 0.4, -5]], lw: 1.2, bias: 16 }, 0, 0, 0, 1);
           add({ t: "l", p: [[px + nx * 0.4, py + ny * 0.4, -75], [px + nx * 0.4, py + ny * 0.4, -55]], lw: 1.2, bias: 2 }, 0, 0, 0, 1);
         }
       }
