@@ -574,3 +574,34 @@ a.card:hover .card-media img { transform: scale(1.04); }
   .map-eu .mk text { font-size: 19px; stroke-width: 6px; }
   .map-eu .mk-dot { r: 7; } .map-eu .mk-home .mk-dot { r: 8.5; }
 }
+
+/* map by wine region: dots only on the map, names in a list grouped by country */
+.worldmap-grid { grid-template-columns: 3fr 8fr; align-items: start; }
+.regions { columns: 2; column-gap: 28px; }
+.region-group { break-inside: avoid; padding: 0 0 18px; }
+.region-group h3 { font-size: .78rem; font-weight: 500; color: var(--muted); margin: 0 0 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.region-group h3 .rg { color: inherit; font-size: inherit; font-weight: inherit; }
+.region-group ul { list-style: none; margin: 0; padding: 0; }
+.rg { all: unset; cursor: default; font-size: .95rem; line-height: 1.75; color: var(--black); border-bottom: 1px solid transparent; transition: color .2s, border-color .2s; }
+.rg.has-story { cursor: pointer; border-bottom-color: var(--line); }
+.rg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rg.hl, .rg.active { color: var(--accent); }
+.rg.active { border-bottom-color: var(--accent); }
+.mk.hl .mk-dot { r: 10; }
+.map-eu .mk-dot { r: 6; } .map-eu .mk-home .mk-dot { r: 7.5; }
+.map-eu .mk.hl .mk-dot, .map-eu .mk.active .mk-dot { r: 10; }
+.map-eu-wrap { position: relative; }
+.map-eu-wrap .insets { position: absolute; right: 0; bottom: 0; width: 26%; grid-template-columns: 1fr 1fr; gap: 10px; }
+.map-eu-wrap .inset { padding: 10px 10px 8px; }
+.map-eu-wrap .inset figcaption { font-size: .7rem; margin-top: 4px; }
+.map-ca .mk-dot { r: 10; } .map-il .mk-dot { r: 6; }
+@media (max-width: 900px) {
+  .worldmap-grid { grid-template-columns: 1fr; }
+  .map-eu-wrap .insets { position: static; width: 100%; margin-top: 16px; }
+  .map-eu-wrap .inset { width: auto; }
+  .map-eu .mk-dot { r: 8; } .map-eu .mk-home .mk-dot { r: 9.5; }
+  .regions { columns: 2; }
+}
+.region-group > ul:first-child { padding-top: 12px; border-top: 1px solid var(--line); }
+.regions { columns: 3; }
+@media (max-width: 1200px) { .regions { columns: 2; } }

@@ -314,15 +314,23 @@ var BG = "#17191b", WH = "#ffffff", R = 25, H = 150, D = 2200;
   });
 
   // Map: clicking a marker with a story shows its card
-  var marks = document.querySelectorAll(".worldmap .has-story");
+  var marks = document.querySelectorAll(".worldmap .mk.has-story");
   function showStory(id) {
     document.querySelectorAll(".worldmap .story").forEach(function (st) { st.hidden = st.getAttribute("data-story") !== id; });
-    document.querySelectorAll(".worldmap .mk").forEach(function (m) { m.classList.toggle("active", m.getAttribute("data-loc") === id); });
+    document.querySelectorAll(".worldmap .mk, .worldmap .rg").forEach(function (m) { m.classList.toggle("active", m.getAttribute("data-loc") === id); });
   }
   marks.forEach(function (m) {
     var id = m.getAttribute("data-loc");
     m.addEventListener("click", function () { showStory(id); });
     m.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); showStory(id); } });
+  });
+  // region list <-> map markers: hovering either highlights both; entries with a story open it
+  document.querySelectorAll(".worldmap [data-loc]").forEach(function (el) {
+    var id = el.getAttribute("data-loc");
+    var hl = function (on) { document.querySelectorAll('.worldmap [data-loc="' + id + '"]').forEach(function (x) { x.classList.toggle("hl", on); }); };
+    el.addEventListener("mouseenter", function () { hl(true); }); el.addEventListener("mouseleave", function () { hl(false); });
+    el.addEventListener("focus", function () { hl(true); }); el.addEventListener("blur", function () { hl(false); });
+    if (el.classList.contains("rg") && el.classList.contains("has-story")) el.addEventListener("click", function () { showStory(id); });
   });
   var home = document.querySelector(".worldmap .mk-home.has-story") || marks[0];
   if (home) showStory(home.getAttribute("data-loc"));

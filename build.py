@@ -295,10 +295,8 @@ def _map_svg(ctx, which):
         anchor = loc.get("anchor") or ("end" if lx < x - 20 else ("start" if lx > x + 20 else "middle"))
         story = " has-story" if loc.get("story") else ""
         tag = f' role="button" tabindex="0" aria-label="{label}"' if story else ""
-        marks += (f'<g class="mk{story}{" mk-home" if loc.get("home") else ""}" data-loc="{i}"{tag}>'
-                  f'<line x1="{x:.0f}" y1="{y:.0f}" x2="{lx}" y2="{ly + (6 if ly > y else -4)}"/>'
-                  f'<circle class="mk-hit" cx="{x:.0f}" cy="{y:.0f}" r="22"/><circle class="mk-dot" cx="{x:.0f}" cy="{y:.0f}" r="{8 if loc.get("home") else 6.5}"/>'
-                  f'<text x="{lx}" y="{ly}" text-anchor="{anchor}">{label}</text></g>')
+        marks += (f'<g class="mk{story}{" mk-home" if loc.get("home") else ""}" data-loc="{i}"{tag}><title>{label}</title>'
+                  f'<circle class="mk-hit" cx="{x:.0f}" cy="{y:.0f}" r="22"/><circle class="mk-dot" cx="{x:.0f}" cy="{y:.0f}" r="{8 if loc.get("home") else 6.5}"/></g>')
     return (f'<svg class="map-svg map-{which}" viewBox="0 0 {W} {H}" role="img" aria-label="{e(t(C.HOME["map_title"], ctx.lang))}">'
             f'<path class="geo" d="{dots}"/>{marks}</svg>')
 
@@ -387,16 +385,37 @@ def world_map(ctx):
                     f'<div class="story-text"><h3>{e(t(st["title"], lang))}</h3><p>{e(t(st["text"], lang))}</p>{link}</div></article>')
         first = False
     ca = "Kalifornien, USA" if lang == "de" else "California, USA"
-    il = "Israel" if lang == "de" else "Israel"
+    il = "Israel"
+    # wine regions, grouped by country; a country-level marker makes the country name itself the entry
+    regions = ""
+    for code, cname in C.COUNTRIES.items():
+        locs = [(i, l) for i, l in enumerate(C.LOCATIONS) if l.get("country") == code]
+        if not locs:
+            continue
+        name = t(cname, lang)
+        head, items = f"<h3>{e(name)}</h3>", ""
+        for i, l in locs:
+            lab = t(l["label"], lang)
+            cls = "rg" + (" has-story" if l.get("story") else "") + (" rg-home" if l.get("home") else "")
+            if lab == name:
+                head = f'<h3><button class="{cls}" type="button" data-loc="{i}">{e(name)}</button></h3>'
+            else:
+                items += f'<li><button class="{cls}" type="button" data-loc="{i}">{e(lab)}</button></li>'
+        if not items:   # a country with no region below it: the country itself is the entry
+            items, head = head.replace("<h3>", "<li>").replace("</h3>", "</li>"), ""
+        regions += f'<div class="region-group">{head}<ul>{items}</ul></div>'
+
     return f"""<section class="section worldmap">
   <div class="wrap">
     <div class="worldmap-head"><h2>{e(t(C.HOME['map_title'], lang))}</h2><p>{e(t(C.HOME['map_text'], lang))}</p></div>
     <div class="worldmap-grid">
-      <div class="insets">
-        <figure class="inset">{_map_svg(ctx, 'ca')}<figcaption>{ca}</figcaption></figure>
-        <figure class="inset">{_map_svg(ctx, 'il')}<figcaption>{il}</figcaption></figure>
+      <div class="regions">{regions}</div>
+      <div class="map-eu-wrap">{_map_svg(ctx, 'eu')}
+        <div class="insets">
+          <figure class="inset">{_map_svg(ctx, 'ca')}<figcaption>{ca}</figcaption></figure>
+          <figure class="inset">{_map_svg(ctx, 'il')}<figcaption>{il}</figcaption></figure>
+        </div>
       </div>
-      <div class="map-eu-wrap">{_map_svg(ctx, 'eu')}</div>
     </div>
     <div class="stories">{stories}</div>
   </div>
