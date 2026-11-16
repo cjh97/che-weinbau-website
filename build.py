@@ -401,9 +401,7 @@ def world_map(ctx):
                 head = f'<h3><button class="{cls}" type="button" data-loc="{i}">{e(name)}</button></h3>'
             else:
                 items += f'<li><button class="{cls}" type="button" data-loc="{i}">{e(lab)}</button></li>'
-        if not items:   # a country with no region below it: the country itself is the entry
-            items, head = head.replace("<h3>", "<li>").replace("</h3>", "</li>"), ""
-        regions += f'<div class="region-group">{head}<ul>{items}</ul></div>'
+        regions += f'<div class="region-group">{head}{f"<ul>{items}</ul>" if items else ""}</div>'
 
     return f"""<section class="section worldmap">
   <div class="wrap">
