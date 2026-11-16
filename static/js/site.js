@@ -144,6 +144,14 @@
           phi = (5 + 7 * t) * Math.PI / 180, cp = Math.cos(phi), sp = Math.sin(phi);
       var S = Math.min(h / 560, w / 430), CX = w * 0.5 - (w > 900 ? w * 0.04 * (1 - t) : 0), CY = h * 0.5;
       var off = (ts / 1000 * 34) % 80, toff = 0;
+      // final approach: the camera settles where the machine stands in the photo (2000 × 1333, object-fit: cover)
+      var q = ramp(p, 0.82, 0.97);
+      if (q > 0) {
+        var S0 = S, CX0 = CX, CY0 = CY; S = 1; CX = 0; CY = 0;
+        var gb = P(-40, 0, -9, 0), gt = P(-40, 140, -9, 0), isc = Math.max(w / 2000, h / 1333),
+            St = 370 * isc / (gb[1] - gt[1]), gx = (w - 2000 * isc) / 2 + 1040 * isc, gy = (h - 1333 * isc) / 2 + 919 * isc;
+        S = S0 + (St - S0) * q; CX = CX0 + (gx - St * gb[0] - CX0) * q; CY = CY0 + (gy - St * gb[1] - CY0) * q;
+      }
       function P(x, y, z, lvl) {
         y += (lvl || 0) * H * hh;
         var x1 = x * ca - y * sa, y1 = x * sa + y * ca - 55;
