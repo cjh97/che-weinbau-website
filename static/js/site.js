@@ -123,7 +123,7 @@
       var a = Math.atan(pct / 100), ca = Math.cos(a), sa = Math.sin(a), psi = t * Math.PI / 2, cy = Math.cos(psi), sy = Math.sin(psi),
           phi = (5 + 7 * t) * Math.PI / 180, cp = Math.cos(phi), sp = Math.sin(phi);
       var S = Math.min(h / 560, w / 430), CX = w * 0.5 - (w > 900 ? w * 0.04 * (1 - t) : 0), CY = h * 0.5;
-      var off = (ts / 1000 * 34) % 80, toff = (ts / 1000 * 46) % 12;
+      var off = (ts / 1000 * 34) % 80, toff = 11 - (ts / 1000 * 34) % 11;   // tread: bottom run rests on the ground, top run runs forward
       function P(x, y, z, lvl) {
         y += (lvl || 0) * H * hh;
         var x1 = x * ca - y * sa, y1 = x * sa + y * ca - 55;
