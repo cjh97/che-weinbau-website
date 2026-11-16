@@ -96,7 +96,7 @@
     prism(machine, headPf, R - 30, R - 13, null, 14); prism(machine, headPf, R + 13, R + 30, null, 14);            // harvesting head, raked front
     rbox(machine, -104, -48, 124, 140, R - 32, R + 32, 6);                                         // bridge over the row
     rbox(machine, -98, -58, 140, 150, R - 18, R + 18, 5);                                          // head cover
-    machine.push({ t: "f", p: [[58,74,-11.5],[107,74,-11.5],[110,84,-11.5],[96,123,-11.5],[61,123,-11.5],[58,112,-11.5]], fill: "#2e3033", stroke: WH, bias: 20 });
+    machine.push({ t: "f", p: roundPf([[58,74],[107,74],[110,84],[96,123],[61,123],[58,112]], 6).map(function (q) { return [q[0], q[1], -11.5]; }), fill: "#2e3033", stroke: WH, bias: 20, glass: 1 });
     machine.push({ t: "f", p: [[-142,6,R-13],[-48,6,R-13],[-48,0,R-2],[-142,0,R-2]], fill: "#6b4a3a", stroke: WH });
     machine.push({ t: "f", p: [[-142,6,R+13],[-48,6,R+13],[-48,0,R+2],[-142,0,R+2]], fill: "#6b4a3a", stroke: WH });
     var i, k, arc = [];
@@ -183,6 +183,21 @@
             g.closePath(); g.fillStyle = pr.fill; g.fill(); g.strokeStyle = pr.fill; g.lineWidth = 0.6; g.stroke();
             g.beginPath(); g.moveTo(q[0][0], q[0][1]); g.lineTo(q[1][0], q[1][1]); g.moveTo(q[2][0], q[2][1]); g.lineTo(q[3][0], q[3][1]);
             g.strokeStyle = pr.stroke; g.lineWidth = 1.5; g.stroke();
+          }
+          else if (pr.t === "f" && pr.glass) {
+            // tinted glass: soft gradient, two diagonal reflections, thin bright rim
+            var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+            q.forEach(function (v) { x0 = Math.min(x0, v[0]); y0 = Math.min(y0, v[1]); x1 = Math.max(x1, v[0]); y1 = Math.max(y1, v[1]); });
+            var gw = x1 - x0, gh = y1 - y0, gr = g.createLinearGradient(x0, y0, x1, y1);
+            gr.addColorStop(0, "#4a4f55"); gr.addColorStop(0.45, "#2c2f33"); gr.addColorStop(1, "#1d1f22");
+            g.closePath(); g.save(); g.fillStyle = gr; g.fill(); g.clip();
+            g.fillStyle = "rgba(255,255,255,.13)";
+            g.beginPath(); g.moveTo(x0 + gw * .18, y1); g.lineTo(x0 + gw * .42, y1); g.lineTo(x0 + gw * .82, y0); g.lineTo(x0 + gw * .58, y0); g.fill();
+            g.fillStyle = "rgba(255,255,255,.07)";
+            g.beginPath(); g.moveTo(x0 + gw * .5, y1); g.lineTo(x0 + gw * .58, y1); g.lineTo(x0 + gw * .98, y0); g.lineTo(x0 + gw * .9, y0); g.fill();
+            g.restore();
+            g.beginPath(); g.moveTo(q[0][0], q[0][1]); for (j = 1; j < q.length; j++) g.lineTo(q[j][0], q[j][1]); g.closePath();
+            g.strokeStyle = "rgba(255,255,255,.85)"; g.lineWidth = 1.2; g.stroke();
           }
           else if (pr.t === "f") { g.closePath(); g.fillStyle = pr.fill; g.fill(); g.strokeStyle = pr.stroke; g.lineWidth = pr.lw || 1.5; g.stroke(); }
           else { g.strokeStyle = pr.col || WH; g.lineWidth = pr.lw || 1.5; g.stroke(); }
