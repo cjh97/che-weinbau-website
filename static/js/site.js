@@ -94,12 +94,12 @@ var BG = "#17191b", WH = "#ffffff", R = 25, H = 150, D = 2200;
     var headPf = [[-135,26],[-126,18],[-35,18],[-35,124],[-135,124]];
     prism(machine, headPf, R - 30, R - 13, null, 8); prism(machine, headPf, R + 13, R + 30, null, 8);  // harvesting head, either side of the row
     prism(machine, [[-135,124],[-35,124],[-35,126],[-14,126],[-3,119],[-3,114],[26,114],[26,154],[-135,154]], R - 32, R + 32, null, 6);  // head top, reaching over the column
-    machine.push({ t: "f", p: roundPf([[66,96],[150,96],[150,138],[145,143],[84,143]], 6).map(function (q) { return [q[0], q[1], -7.5]; }), fill: "#2e3033", stroke: WH, bias: 20, glass: 1 });
+    machine.push({ t: "f", p: roundPf([[64,96],[138,96],[150,136],[146,144],[83,144]], 6).map(function (q) { return [q[0], q[1], -7.5]; }), fill: "#2e3033", stroke: WH, bias: 20, glass: 1 });
     machine.push({ t: "f", p: [[-126,18,R-13],[-35,18,R-13],[-35,12,R-2],[-126,12,R-2]], fill: "#6b4a3a", stroke: WH });
     machine.push({ t: "f", p: [[-126,18,R+13],[-35,18,R+13],[-35,12,R+2],[-126,12,R+2]], fill: "#6b4a3a", stroke: WH });
     var i, k;
     // CH mark, traced from the company logo (C and H as filled shapes on the engine section)
-    LOGO.forEach(function (pf) { machine.push({ t: "f", p: pf.map(function (q) { return [q[0] + 12, q[1] - 10, -7.5]; }), fill: WH, stroke: WH, lw: 0.5, bias: 25 }); });
+    LOGO.forEach(function (pf) { machine.push({ t: "f", p: pf.map(function (q) { return [18 + (q[0] - 6) * 0.8, 72 + (q[1] - 82) * 0.8, -7.5]; }), fill: WH, stroke: WH, lw: 0.5, bias: 25 }); });
     for (i = 0; i < 3; i++) {                                                                  // hoses down the outside of the head
       var hs = [];
       for (k = 0; k <= 10; k++) hs.push([-66 - i * 9 - 34 * Math.pow(k / 10, 1.6), 150 - 118 * (k / 10), R + 31 + 5 * Math.sin(Math.PI * k / 10)]);
