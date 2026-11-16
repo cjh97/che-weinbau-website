@@ -133,7 +133,7 @@
     var XA = -1000, XB = 2600, zs = [-1500, -290, -110, 70, 250, 700];
 
     // ---- render ------------------------------------------------------------
-    var curP = 0, W = 0, Hh = 0;
+    var curP = 0, curPh = 0, photo = slope.querySelector("[data-slope-photo]");
     function render(p, ts) {
       var dpr = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight;
       if (!w || !h) return;
@@ -229,12 +229,15 @@
       window.addEventListener("resize", function () { render(0.9, 0); });
     } else {
       var onSlope = function () {
-        var r = slope.getBoundingClientRect(), span = r.height - window.innerHeight;
-        curP = span > 0 ? Math.min(1, Math.max(0, -r.top / span)) : 1;
+        // the last stretch of the section is the dissolve from the drawn scene into the photo
+        var r = slope.getBoundingClientRect(), vh = window.innerHeight, span = r.height - vh, sc = -r.top, scene = span - vh * 0.9;
+        curP = scene > 0 ? Math.min(1, Math.max(0, sc / scene)) : 1;
+        curPh = ramp(sc, scene - vh * 0.15, scene + vh * 0.5);
+        if (photo) { photo.style.setProperty("--ph", curPh.toFixed(3)); photo.style.setProperty("--pt", ramp(sc, scene + vh * 0.3, scene + vh * 0.65).toFixed(3)); }
       };
       var loop = function (ts) {
         var r = slope.getBoundingClientRect();
-        if (r.bottom > 0 && r.top < window.innerHeight) render(curP, ts);
+        if (r.bottom > 0 && r.top < window.innerHeight && curPh < 1) render(curP, ts);
         requestAnimationFrame(loop);
       };
       window.addEventListener("scroll", onSlope, { passive: true }); window.addEventListener("resize", onSlope);

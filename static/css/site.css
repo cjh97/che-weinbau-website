@@ -549,3 +549,14 @@ a.card:hover .card-media img { transform: scale(1.04); }
 /* 3D scene canvas */
 .slope-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .slope-story.is-static .slope-canvas { position: relative; height: 60vh; }
+
+/* the 3D scene dissolves into the real photo, in place */
+.slope-story { height: 690vh; }
+@media (max-width: 900px) { .slope-story { height: 610vh; } }
+.slope-photo { --ph: 0; --pt: 0; position: absolute; inset: 0; z-index: 3; opacity: var(--ph); pointer-events: none; overflow: hidden; background: var(--black); }
+.slope-photo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 52% 62%; transform: scale(calc(1.14 - var(--ph) * .14)); }
+.slope-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(10,12,14,.7) 0%, rgba(10,12,14,.15) 45%, rgba(10,12,14,0) 65%); }
+.slope-photo-text { position: absolute; left: 0; right: 0; bottom: clamp(40px, 7vh, 80px); margin-inline: auto; z-index: 1; opacity: var(--pt); transform: translateY(calc((1 - var(--pt)) * 18px)); }
+.slope-sticky .slope-photo-text h2 { color: #fff; font-size: clamp(2.2rem, 5vw, 4.4rem); max-width: 12em; margin: 0; }
+.slope-story.is-static .slope-photo { --ph: 1; --pt: 1; position: relative; height: 70vh; }
+.expand .benefits { margin-top: 0; padding-top: clamp(56px, 7vw, 104px); }

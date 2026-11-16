@@ -355,6 +355,10 @@ def slope_story(ctx):
     <div class="wrap"><h2>{e(t(C.HOME['slope_title'], lang))}</h2></div>
     <canvas class="slope-canvas" data-scene aria-hidden="true"></canvas>
     <div class="wrap slope-read"><strong data-slope-num>1</strong><span data-slope-label>{e(labels[3])}</span></div>
+    <div class="slope-photo" data-slope-photo>
+      {img(ctx, 'msh-row.jpg', t(C.HOME['benefits_title'], lang), 'slope-photo-img')}
+      <div class="wrap slope-photo-text"><h2>{e(t(C.HOME['benefits_title'], lang))}</h2></div>
+    </div>
   </div>
 </section>"""
 
@@ -363,12 +367,7 @@ def quality(ctx):
     """Photo that opens up to full width while scrolling, headline on it, the four benefits as a quiet row below."""
     h, lang = C.HOME, ctx.lang
     items = "".join(f'<div class="benefit"><h3>{e(t(f["title"], lang))}</h3><p>{e(t(f["text"], lang))}</p></div>' for f in h["features"])
-    return f"""<section class="expand" data-expand>
-  <div class="expand-frame">
-    {img(ctx, 'msh-row.jpg', t(h['benefits_title'], lang), 'expand-img')}
-    <div class="expand-fade"></div>
-    <div class="wrap expand-text"><h2>{e(t(h['benefits_title'], lang))}</h2></div>
-  </div>
+    return f"""<section class="expand">
   <div class="wrap benefits">{items}</div>
   <div class="wrap benefits-more"><a class="text-link" href="{ctx.page('msh')}">{e(t(h['short_link'], lang))}</a></div>
 </section>"""
